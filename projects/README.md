@@ -11,5 +11,6 @@ $EDITOR projects/my-analysis/make_plots.py
 python projects/my-analysis/make_plots.py
 ```
 
-`save()` infers the project name from the script's own path, so nothing else
-needs renaming.
+`save()` and `save_html()` infer the project name from the script's own path,
+so nothing else needs renaming. Scripts run correctly from any working
+directory — output is always resolved relative to the repo root.

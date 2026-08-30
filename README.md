@@ -13,6 +13,22 @@ tools/plotsite.py    save() helper — writes to the right place
 tools/build_index.py generates the browsable index (CI runs it; gitignored)
 ```
 
+## Two ways to save
+
+```python
+from plotsite import save, save_html
+
+save(fig, "effective-energy", title="Effective energy plateau")   # a Plotly figure
+save_html(document, "rgl-lattice")                                # your own HTML doc
+```
+
+Use `save_html()` when a script assembles its own page — custom controls,
+stylesheets, browser-side callbacks (see `projects/luscher-tex/`). It keeps the
+`<title>` you already set; `save()` sets one for you. Either way the output goes
+to `site/` no matter which directory you run the script from, so don't write
+files next to the source — `.gitignore` blocks `projects/**/*.html` to keep that
+from happening by accident.
+
 ## URLs
 
 A figure saved as `save(fig, "effective-energy")` from `projects/pipi-scattering/`

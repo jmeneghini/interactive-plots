@@ -1,8 +1,12 @@
 import json
-from pathlib import Path
+import pathlib
+import sys
 
 import numpy as np
 import plotly.graph_objects as go
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from plotsite import save_html  # noqa: E402
 
 
 # ============================================================
@@ -648,13 +652,9 @@ html = (
 
 # ------------------------------------------------------------
 # Save the HTML
+#
+# save_html() puts the page at site/luscher-tex/rgl-lattice.html regardless of
+# the working directory, and keeps the <title> set above.
 # ------------------------------------------------------------
 
-output_html = Path("rgl_lattice.html").resolve()
-
-output_html.write_text(
-    html,
-    encoding="utf-8",
-)
-
-print(f"Wrote: {output_html}")
+save_html(html, "rgl-lattice")
