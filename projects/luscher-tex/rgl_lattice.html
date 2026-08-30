@@ -1,0 +1,380 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>RGL moving-frame momentum lattice</title>
+<style>
+body {
+    margin: 0;
+    padding: 20px;
+    background: white;
+    color: #222222;
+    font-family: Arial, sans-serif;
+}
+
+.rgl-page {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 24px;
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.rgl-controls {
+    box-sizing: border-box;
+    width: 300px;
+    margin-top: 65px;
+    padding: 18px;
+    border: 1px solid #d8d8d8;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+.rgl-controls h2 {
+    margin: 0 0 20px;
+    font-size: 18px;
+}
+
+.rgl-controls label {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.rgl-controls input {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.rgl-controls output {
+    font-family: monospace;
+}
+
+.rgl-info {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #d8d8d8;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+@media (max-width: 950px) {
+    .rgl-page {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .rgl-controls {
+        width: min(750px, 95vw);
+        margin-top: 0;
+    }
+}
+</style>
+</head><body><main class='rgl-page'>
+<div class="rgl-controls">
+    <h2>RGL parameters</h2>
+
+    <label>
+        <span>dₓ</span>
+        <output id="dx-value"></output>
+        <input
+            id="dx"
+            type="range"
+            min="-4"
+            max="4"
+            step="1"
+            value="0"
+        >
+    </label>
+
+    <label>
+        <span>dᵧ</span>
+        <output id="dy-value"></output>
+        <input
+            id="dy"
+            type="range"
+            min="-4"
+            max="4"
+            step="1"
+            value="1"
+        >
+    </label>
+
+    <label>
+        <span>Δ / mref²</span>
+        <output id="Delta-value"></output>
+        <input
+            id="Delta"
+            type="range"
+            min="-2"
+            max="2"
+            step="0.02"
+            value="0"
+        >
+    </label>
+
+    <label>
+        <span>Ecm² / mref²</span>
+        <output id="Ecm2-value"></output>
+        <input
+            id="Ecm2"
+            type="range"
+            min="0.1"
+            max="20"
+            step="0.1"
+            value="4"
+        >
+    </label>
+
+    <label>
+        <span>mref Lᵥ</span>
+        <output id="mrefL-value"></output>
+        <input
+            id="mrefL"
+            type="range"
+            min="2"
+            max="50"
+            step="0.5"
+            value="15"
+        >
+    </label>
+
+    <div id="rgl-info" class="rgl-info"></div>
+</div>
+<div>                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.4.0.min.js" integrity="sha256-KEmPoupLpFyGMyGAiOsiNDbKDKAvxXAn/W+oQa0ZAfk=" crossorigin="anonymous"></script>                <div id="rgl-plot" class="plotly-graph-div" style="height:750px; width:750px;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("rgl-plot")) {                    Plotly.newPlot(                        "rgl-plot",                        [{"marker":{"color":"#555555","size":8,"symbol":"circle-open"},"mode":"markers","name":"integer lattice n","x":{"dtype":"i1","bdata":"+\u002fz9\u002fv8AAQIDBAX7\u002fP3+\u002fwABAgMEBfv8\u002ff7\u002fAAECAwQF+\u002fz9\u002fv8AAQIDBAX7\u002fP3+\u002fwABAgMEBfv8\u002ff7\u002fAAECAwQF+\u002fz9\u002fv8AAQIDBAX7\u002fP3+\u002fwABAgMEBfv8\u002ff7\u002fAAECAwQF+\u002fz9\u002fv8AAQIDBAX7\u002fP3+\u002fwABAgMEBQ=="},"y":{"dtype":"i1","bdata":"+\u002fv7+\u002fv7+\u002fv7+\u002fv8\u002fPz8\u002fPz8\u002fPz8\u002fP39\u002ff39\u002ff39\u002ff39\u002fv7+\u002fv7+\u002fv7+\u002fv7\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002f\u002fwAAAAAAAAAAAAAAAQEBAQEBAQEBAQECAgICAgICAgICAgMDAwMDAwMDAwMDBAQEBAQEBAQEBAQFBQUFBQUFBQUFBQ=="},"type":"scatter"},{"marker":{"color":"#e45756","size":10,"symbol":"x"},"mode":"markers","name":"n \u2212 s\u002f2","x":{"dtype":"f8","bdata":"AAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEA="},"y":{"dtype":"f8","bdata":"AAAAAAAAFsAAAAAAAAAWwAAAAAAAABbAAAAAAAAAFsAAAAAAAAAWwAAAAAAAABbAAAAAAAAAFsAAAAAAAAAWwAAAAAAAABbAAAAAAAAAFsAAAAAAAAAWwAAAAAAAABLAAAAAAAAAEsAAAAAAAAASwAAAAAAAABLAAAAAAAAAEsAAAAAAAAASwAAAAAAAABLAAAAAAAAAEsAAAAAAAAASwAAAAAAAABLAAAAAAAAAEsAAAAAAAAAMwAAAAAAAAAzAAAAAAAAADMAAAAAAAAAMwAAAAAAAAAzAAAAAAAAADMAAAAAAAAAMwAAAAAAAAAzAAAAAAAAADMAAAAAAAAAMwAAAAAAAAAzAAAAAAAAABMAAAAAAAAAEwAAAAAAAAATAAAAAAAAABMAAAAAAAAAEwAAAAAAAAATAAAAAAAAABMAAAAAAAAAEwAAAAAAAAATAAAAAAAAABMAAAAAAAAAEwAAAAAAAAPi\u002fAAAAAAAA+L8AAAAAAAD4vwAAAAAAAPi\u002fAAAAAAAA+L8AAAAAAAD4vwAAAAAAAPi\u002fAAAAAAAA+L8AAAAAAAD4vwAAAAAAAPi\u002fAAAAAAAA+L8AAAAAAADgvwAAAAAAAOC\u002fAAAAAAAA4L8AAAAAAADgvwAAAAAAAOC\u002fAAAAAAAA4L8AAAAAAADgvwAAAAAAAOC\u002fAAAAAAAA4L8AAAAAAADgvwAAAAAAAOC\u002fAAAAAAAA4D8AAAAAAADgPwAAAAAAAOA\u002fAAAAAAAA4D8AAAAAAADgPwAAAAAAAOA\u002fAAAAAAAA4D8AAAAAAADgPwAAAAAAAOA\u002fAAAAAAAA4D8AAAAAAADgPwAAAAAAAPg\u002fAAAAAAAA+D8AAAAAAAD4PwAAAAAAAPg\u002fAAAAAAAA+D8AAAAAAAD4PwAAAAAAAPg\u002fAAAAAAAA+D8AAAAAAAD4PwAAAAAAAPg\u002fAAAAAAAA+D8AAAAAAAAEQAAAAAAAAARAAAAAAAAABEAAAAAAAAAEQAAAAAAAAARAAAAAAAAABEAAAAAAAAAEQAAAAAAAAARAAAAAAAAABEAAAAAAAAAEQAAAAAAAAARAAAAAAAAADEAAAAAAAAAMQAAAAAAAAAxAAAAAAAAADEAAAAAAAAAMQAAAAAAAAAxAAAAAAAAADEAAAAAAAAAMQAAAAAAAAAxAAAAAAAAADEAAAAAAAAAMQAAAAAAAABJAAAAAAAAAEkAAAAAAAAASQAAAAAAAABJAAAAAAAAAEkAAAAAAAAASQAAAAAAAABJAAAAAAAAAEkAAAAAAAAASQAAAAAAAABJAAAAAAAAAEkA="},"type":"scatter"},{"marker":{"color":"#4c78a8","size":7,"symbol":"circle"},"mode":"markers","name":"RGL lattice r\u2099","x":{"dtype":"f8","bdata":"AAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEAAAAAAAAAUwAAAAAAAABDAAAAAAAAACMAAAAAAAAAAwAAAAAAAAPC\u002fAAAAAAAAAAAAAAAAAADwPwAAAAAAAABAAAAAAAAACEAAAAAAAAAQQAAAAAAAABRAAAAAAAAAFMAAAAAAAAAQwAAAAAAAAAjAAAAAAAAAAMAAAAAAAADwvwAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAQAAAAAAAAAhAAAAAAAAAEEAAAAAAAAAUQAAAAAAAABTAAAAAAAAAEMAAAAAAAAAIwAAAAAAAAADAAAAAAAAA8L8AAAAAAAAAAAAAAAAAAPA\u002fAAAAAAAAAEAAAAAAAAAIQAAAAAAAABBAAAAAAAAAFEA="},"y":{"dtype":"f8","bdata":"JcKSqWWIFcAlwpKpZYgVwCXCkqlliBXAJcKSqWWIFcAlwpKpZYgVwCXCkqlliBXAJcKSqWWIFcAlwpKpZYgVwCXCkqlliBXAJcKSqWWIFcAlwpKpZYgVwB62A6IknhHAHrYDoiSeEcAetgOiJJ4RwB62A6IknhHAHrYDoiSeEcAetgOiJJ4RwB62A6IknhHAHrYDoiSeEcAetgOiJJ4RwB62A6IknhHAHrYDoiSeEcAvVOk0x2cLwC9U6TTHZwvAL1TpNMdnC8AvVOk0x2cLwC9U6TTHZwvAL1TpNMdnC8AvVOk0x2cLwC9U6TTHZwvAL1TpNMdnC8AvVOk0x2cLwC9U6TTHZwvAITzLJUWTA8AhPMslRZMDwCE8yyVFkwPAITzLJUWTA8AhPMslRZMDwCE8yyVFkwPAITzLJUWTA8AhPMslRZMDwCE8yyVFkwPAITzLJUWTA8AhPMslRZMDwChIWi2Gffe\u002fKEhaLYZ9978oSFothn33vyhIWi2Gffe\u002fKEhaLYZ9978oSFothn33vyhIWi2Gffe\u002fKEhaLYZ9978oSFothn33vyhIWi2Gffe\u002fKEhaLYZ99781YHg8CFLfvzVgeDwIUt+\u002fNWB4PAhS3781YHg8CFLfvzVgeDwIUt+\u002fNWB4PAhS3781YHg8CFLfvzVgeDwIUt+\u002fNWB4PAhS3781YHg8CFLfvzVgeDwIUt+\u002fNWB4PAhS3z81YHg8CFLfPzVgeDwIUt8\u002fNWB4PAhS3z81YHg8CFLfPzVgeDwIUt8\u002fNWB4PAhS3z81YHg8CFLfPzVgeDwIUt8\u002fNWB4PAhS3z81YHg8CFLfPyhIWi2Gffc\u002fKEhaLYZ99z8oSFothn33PyhIWi2Gffc\u002fKEhaLYZ99z8oSFothn33PyhIWi2Gffc\u002fKEhaLYZ99z8oSFothn33PyhIWi2Gffc\u002fKEhaLYZ99z8hPMslRZMDQCE8yyVFkwNAITzLJUWTA0AhPMslRZMDQCE8yyVFkwNAITzLJUWTA0AhPMslRZMDQCE8yyVFkwNAITzLJUWTA0AhPMslRZMDQCE8yyVFkwNAL1TpNMdnC0AvVOk0x2cLQC9U6TTHZwtAL1TpNMdnC0AvVOk0x2cLQC9U6TTHZwtAL1TpNMdnC0AvVOk0x2cLQC9U6TTHZwtAL1TpNMdnC0AvVOk0x2cLQB62A6IknhFAHrYDoiSeEUAetgOiJJ4RQB62A6IknhFAHrYDoiSeEUAetgOiJJ4RQB62A6IknhFAHrYDoiSeEUAetgOiJJ4RQB62A6IknhFAHrYDoiSeEUA="},"type":"scatter"},{"marker":{"color":"black","size":12,"symbol":"cross"},"mode":"markers","name":"origin","x":[0],"y":[0],"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"margin":{"l":70,"r":30,"t":80,"b":60},"xaxis":{"title":{"text":"x"},"scaleanchor":"y","scaleratio":1,"zeroline":true},"yaxis":{"title":{"text":"y"},"zeroline":true},"legend":{"x":0.02,"y":0.98},"width":750,"height":750,"title":{"text":"RGL lattice: d=(0, 1), s\u0303=1.0000, \u03b3=1.0217"}},                        {"responsive": true, "displaylogo": false}                    )                };            </script>        </div></main>
+<script>
+const latticeX = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+const latticeY = [-5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5];
+
+const plot = document.getElementById("rgl-plot");
+
+function controlValue(id) {
+    return Number(document.getElementById(id).value);
+}
+
+function updateReadout(id, digits) {
+    document.getElementById(id + "-value").textContent =
+        controlValue(id).toFixed(digits);
+}
+
+function updatePlot() {
+    const dx = controlValue("dx");
+    const dy = controlValue("dy");
+
+    const Delta_over_mref2 =
+        controlValue("Delta");
+
+    const Ecm2_over_mref2 =
+        controlValue("Ecm2");
+
+    const mrefL =
+        controlValue("mrefL");
+
+    const d2 = dx * dx + dy * dy;
+
+    const sTilde =
+        1.0
+        + Delta_over_mref2 / Ecm2_over_mref2;
+
+    const sx = sTilde * dx;
+    const sy = sTilde * dy;
+
+    const gamma = Math.sqrt(
+        1.0
+        + Math.pow(2.0 * Math.PI, 2)
+        * d2
+        / (
+            Math.pow(mrefL, 2)
+            * Ecm2_over_mref2
+        )
+    );
+
+    const shiftedX = [];
+    const shiftedY = [];
+    const rvecX = [];
+    const rvecY = [];
+
+    for (let i = 0; i < latticeX.length; i++) {
+        const nx = latticeX[i];
+        const ny = latticeY[i];
+
+        // nvec - svec/2
+        shiftedX.push(nx - 0.5 * sx);
+        shiftedY.push(ny - 0.5 * sy);
+
+        if (d2 === 0) {
+            rvecX.push(nx);
+            rvecY.push(ny);
+            continue;
+        }
+
+        const nParallel =
+            (nx * dx + ny * dy) / d2;
+
+        const nPerpX =
+            nx - nParallel * dx;
+
+        const nPerpY =
+            ny - nParallel * dy;
+
+        const alphaN =
+            (nParallel - 0.5 * sTilde) / gamma;
+
+        rvecX.push(
+            nPerpX + alphaN * dx
+        );
+
+        rvecY.push(
+            nPerpY + alphaN * dy
+        );
+    }
+
+    const traces = [
+        {
+            x: latticeX,
+            y: latticeY,
+            type: "scatter",
+            mode: "markers",
+            name: "integer lattice n",
+            marker: {
+                size: 8,
+                symbol: "circle-open",
+                color: "#555555"
+            }
+        },
+        {
+            x: shiftedX,
+            y: shiftedY,
+            type: "scatter",
+            mode: "markers",
+            name: "n − s/2",
+            marker: {
+                size: 10,
+                symbol: "x",
+                color: "#e45756"
+            }
+        },
+        {
+            x: rvecX,
+            y: rvecY,
+            type: "scatter",
+            mode: "markers",
+            name: "RGL lattice rₙ",
+            marker: {
+                size: 7,
+                symbol: "circle",
+                color: "#4c78a8"
+            }
+        },
+        {
+            x: [0],
+            y: [0],
+            type: "scatter",
+            mode: "markers",
+            name: "origin",
+            marker: {
+                size: 12,
+                symbol: "cross",
+                color: "black"
+            }
+        }
+    ];
+
+    const layout = {
+        width: 750,
+        height: 750,
+        title: (
+            "RGL lattice: d=("
+            + dx
+            + ", "
+            + dy
+            + "), s̃="
+            + sTilde.toFixed(4)
+            + ", γ="
+            + gamma.toFixed(4)
+        ),
+        margin: {
+            l: 70,
+            r: 30,
+            t: 80,
+            b: 60
+        },
+        xaxis: {
+            title: "x",
+            scaleanchor: "y",
+            scaleratio: 1,
+            zeroline: true,
+            autorange: true
+        },
+        yaxis: {
+            title: "y",
+            zeroline: true,
+            autorange: true
+        },
+        legend: {
+            x: 0.02,
+            y: 0.98
+        }
+    };
+
+    Plotly.react(
+        plot,
+        traces,
+        layout,
+        {
+            responsive: true,
+            displaylogo: false
+        }
+    );
+
+    const P2_over_mref2 =
+        Math.pow(2.0 * Math.PI, 2)
+        * d2
+        / Math.pow(mrefL, 2);
+
+    const relation = d2 === 0
+        ? "Rest frame: rₙ = n because d = 0."
+        : (
+            "αₙ = γ⁻¹(n∥ − s̃/2)<br>"
+            + "rₙ = n⊥ + αₙd"
+        );
+
+    document.getElementById("rgl-info").innerHTML = (
+        "s̃ = " + sTilde.toFixed(6) + "<br>"
+        + "s = ("
+        + sx.toFixed(6)
+        + ", "
+        + sy.toFixed(6)
+        + ")<br>"
+        + "γ = " + gamma.toFixed(6) + "<br>"
+        + "|d|² = " + d2.toFixed(0) + "<br>"
+        + "|P|²/mref² = "
+        + P2_over_mref2.toFixed(6)
+        + "<br><br>"
+        + relation
+    );
+}
+
+const controls = [
+    ["dx", 0],
+    ["dy", 0],
+    ["Delta", 2],
+    ["Ecm2", 2],
+    ["mrefL", 1]
+];
+
+for (const [id, digits] of controls) {
+    const input = document.getElementById(id);
+
+    input.addEventListener("input", function () {
+        updateReadout(id, digits);
+        updatePlot();
+    });
+
+    updateReadout(id, digits);
+}
+
+updatePlot();
+</script>
+</body></html>
