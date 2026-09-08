@@ -7,6 +7,7 @@ Static Plotly figures, one permanent URL each, published with GitHub Pages.
 ## Layout
 
 ```
+pyproject.toml       dependencies (managed with uv; uv.lock is committed)
 projects/<name>/     Python that generates the plots
 site/<name>/         the generated .html (committed, this is what's served)
 tools/plotsite.py    save() helper — writes to the right place
@@ -46,8 +47,8 @@ rename things. `subdir=` in `save()` adds another level if a project needs it.
 ```bash
 cp -r projects/example projects/my-analysis
 # edit projects/my-analysis/make_plots.py
-python projects/my-analysis/make_plots.py
-python tools/build_index.py          # optional: preview the index locally
+uv run python projects/my-analysis/make_plots.py
+uv run python tools/build_index.py   # optional: preview the index locally
 git add projects/my-analysis site/my-analysis
 git commit -m "add my-analysis plots"
 git push
@@ -67,5 +68,21 @@ Pushing to `main` triggers the Pages deploy — usually live in under a minute.
 ## Local preview
 
 ```bash
-python tools/build_index.py && python -m http.server -d site 8000
+uv run python tools/build_index.py && uv run python -m http.server -d site 8000
 ```
+
+## Environment
+
+Dependencies live in `pyproject.toml` and are pinned in `uv.lock`. Any
+`uv run` creates or updates `.venv/` from the lock file first, so there is
+nothing to install by hand — but `uv sync` does it explicitly if you want the
+environment ready before you start:
+
+```bash
+uv sync
+```
+
+Add a dependency with `uv add <package>`; that edits `pyproject.toml` and
+refreshes `uv.lock`, both of which should be committed. CI runs
+`uv sync --locked`, which fails rather than re-resolving if the lock file is
+out of date.

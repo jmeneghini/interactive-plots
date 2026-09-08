@@ -1,6 +1,6 @@
 """Example project: shows the pattern every subfolder should follow.
 
-Run it from anywhere:  python projects/example/make_plots.py
+Run it from anywhere:  uv run python projects/example/make_plots.py
 Output lands in site/example/ and each file gets its own URL.
 """
 

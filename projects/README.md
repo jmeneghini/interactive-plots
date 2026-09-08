@@ -8,7 +8,7 @@ To start a new one:
 ```bash
 cp -r projects/example projects/my-analysis
 $EDITOR projects/my-analysis/make_plots.py
-python projects/my-analysis/make_plots.py
+uv run python projects/my-analysis/make_plots.py
 ```
 
 `save()` and `save_html()` infer the project name from the script's own path,

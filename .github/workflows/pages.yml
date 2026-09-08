@@ -24,13 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install the locked environment
+        run: uv sync --locked
 
       # The plot HTML is committed; CI only builds the browsable index.
       - name: Build index pages
-        run: python tools/build_index.py
+        run: uv run python tools/build_index.py
 
       - name: Disable Jekyll processing
         run: touch site/.nojekyll

@@ -1,0 +1,15 @@
+[project]
+name = "interactive-plots"
+version = "0.1.0"
+description = "Static Plotly figures, one permanent URL each, published with GitHub Pages."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "plotly>=5.20",
+    "numpy",
+]
+
+# Nothing here is installed as a library: the plot scripts under projects/ pick
+# up tools/plotsite.py through sys.path, so uv only manages the environment.
+[tool.uv]
+package = false
