@@ -5,8 +5,8 @@
 Builds three Plotly figures and writes them to a single self-assembled HTML
 page in the site tree:
 
-    uv run python projects/phys1-wk3/circular_vectors.py            -> site/phys1-wk3/circular-vectors.html
-    uv run python projects/phys1-wk3/circular_vectors.py --inline   -> same, with plotly.js inlined (~5 MB, works offline)
+    uv run python projects/phys1/circular_vectors.py            -> site/phys1/circular-vectors.html
+    uv run python projects/phys1/circular_vectors.py --inline   -> same, with plotly.js inlined (~5 MB, works offline)
 
 plotly.js comes from a CDN by default, which is what the published page wants;
 --inline produces the standalone copy to hand out for offline use.
@@ -628,7 +628,7 @@ def main():
 
     html = PAGE.format(paper=PAPER, ink=INK, muted=MUTED, vel=VEL, sans=SANS, mono=MONO,
                        blocks="\n".join(blocks), js=geometry_js())
-    # save_html() puts the page at site/phys1-wk3/circular-vectors.html no matter
+    # save_html() puts the page at site/phys1/circular-vectors.html no matter
     # which directory this runs from, and keeps the <title> set in PAGE.
     save_html(html, "circular-vectors")
     print(f"  ({len(html) / 1e6:0.1f} MB, plotly {'inlined' if inline else 'from CDN'})")
