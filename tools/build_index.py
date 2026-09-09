@@ -13,6 +13,8 @@ import pathlib
 import re
 import sys
 
+from site_config import GOOGLE_TAG
+
 SITE = pathlib.Path(__file__).resolve().parents[1] / "site"
 
 TITLE_RE = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
@@ -64,7 +66,8 @@ def render(heading: str, subtitle: str, sections: list[tuple[str, list[tuple[str
     parts = [
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">",
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">",
-        f"<title>{html.escape(heading)}</title><style>{CSS}</style></head><body><div class=\"wrap\">",
+        f"<title>{html.escape(heading)}</title><style>{CSS}</style>{GOOGLE_TAG}</head>"
+        "<body><div class=\"wrap\">",
     ]
     if up_href:
         parts.append(f'<p class="sub"><a href="{up_href}">&larr; back</a></p>')

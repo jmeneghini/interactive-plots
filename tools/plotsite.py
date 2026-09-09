@@ -27,6 +27,8 @@ import inspect
 import pathlib
 import re
 
+from site_config import GOOGLE_TAG
+
 # How the plotly.js bundle is delivered. "cdn" keeps each file ~50 kB instead
 # of ~4 MB; switch to True if the plots must work offline.
 INCLUDE_PLOTLYJS = "cdn"
@@ -113,6 +115,7 @@ def save(fig, name: str, *, project: str | None = None, title: str | None = None
     # the generated index show something meaningful.
     doc = _with_title(out_path.read_text(), title or name.replace("-", " "),
                       extra_head=_FILL_CSS)
+    doc = _with_google_tag(doc)
     out_path.write_text(doc)
     return _report(out_path)
 
@@ -135,6 +138,8 @@ def save_html(document: str | pathlib.Path, name: str, *, project: str | None = 
     if title or not _TITLE_RE.search(doc):
         doc = _with_title(doc, title or name.replace("-", " "))
 
+    doc = _with_google_tag(doc)
+
     out_path.write_text(doc, encoding="utf-8")
     return _report(out_path)
 
@@ -152,3 +157,12 @@ def _with_title(doc: str, title: str, extra_head: str = "") -> str:
             1,
         )
     return f"<head>{tag}{extra_head}</head>" + doc
+
+
+def _with_google_tag(doc: str) -> str:
+    """Insert the Google tag once in an HTML document's head."""
+    if "G-LPSCL090TY" in doc:
+        return doc
+    if "</head>" in doc:
+        return doc.replace("</head>", f"{GOOGLE_TAG}</head>", 1)
+    return f"<head>{GOOGLE_TAG}</head>" + doc
