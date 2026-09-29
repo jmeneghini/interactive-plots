@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotating hoop — bead motion</title>
+<style>
+  :root { --ink:#1a211d; --muted:#66736b; --paper:#fafbf9; --line:#dce3dc;
+          --track:#83958a; --blue:#3f6fa8; --orange:#b26a12; --red:#b03a30; }
+  * { box-sizing:border-box; }
+  html, body, main { overflow-anchor:none; }
+  html { scrollbar-gutter:stable; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; }
+  main { max-width:1120px; margin:auto; padding:32px 22px 60px; }
+  h1 { margin:0 0 7px; font:normal 32px Georgia,'Times New Roman',serif; }
+  .intro { margin:0 0 24px; max-width:820px; color:var(--muted); line-height:1.5; }
+  .panels { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+  .panel { min-width:0; background:white; border:1px solid var(--line); border-radius:12px;
+           padding:17px 18px 12px; }
+  h2 { margin:0 0 3px; font:normal 21px Georgia,'Times New Roman',serif; }
+  .sub { margin:0; min-height:2.8em; color:var(--muted); font-size:13px; line-height:1.4; }
+  svg { display:block; width:100%; height:auto; overflow:hidden; }
+  #scene { margin:10px auto 0; max-width:540px; }
+  #history { margin:19px auto 0; }
+  .svg-label { fill:var(--muted); font-size:15px; font-family:'IBM Plex Sans',Arial,sans-serif; }
+  .svg-small { fill:var(--muted); font-size:13px; font-family:'IBM Plex Sans',Arial,sans-serif; }
+  .readouts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;
+              border-top:1px solid var(--line); padding-top:14px; margin-top:6px; }
+  .readout span { display:block; color:var(--muted); font-size:11px; letter-spacing:.09em;
+                  text-transform:uppercase; }
+  .readout .sym { text-transform:none; letter-spacing:0; font-style:normal; }
+  .readout strong { display:block; margin-top:4px; font-size:19px; font-weight:600;
+                    font-variant-numeric:tabular-nums; }
+  .controls { margin-top:19px; background:white; border:1px solid var(--line);
+              border-radius:12px; padding:19px 20px 20px; }
+  .controls h2 { margin-bottom:13px; }
+  .control-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 26px; }
+  .control label { display:block; font-size:13px; margin-bottom:7px; }
+  .input-row { display:flex; align-items:center; gap:12px; }
+  .input-row input[type=range] { flex:1; min-width:0; margin:0; }
+  .input-row input[type=number], .perturb input { width:88px; padding:7px 8px;
+         border:1px solid #aebdb3; border-radius:5px; color:var(--ink); background:white;
+         font:600 14px 'IBM Plex Sans',Arial,sans-serif; font-variant-numeric:tabular-nums; }
+  .unit { min-width:22px; color:var(--muted); font-size:13px; }
+  .help { display:block; margin-top:6px; color:var(--muted); font-size:12px; line-height:1.35; }
+  .equilibrium { display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px;
+                 border-top:1px solid var(--line); padding-top:16px; margin-top:17px; }
+  .equilibrium strong { color:var(--blue); font-variant-numeric:tabular-nums; }
+  .equilibrium p { flex-basis:100%; margin:0; color:var(--muted); font-size:12px; }
+  .perturb { display:flex; align-items:center; gap:7px; font-size:13px; }
+  .perturb input { width:70px; }
+  input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin:10px 0 0; }
+  .transport { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:19px;
+               padding-top:15px; border-top:1px solid var(--line); }
+  button { border:1px solid #aebdb3; background:var(--paper); color:var(--ink);
+           border-radius:6px; padding:9px 12px; font-family:inherit; font-size:13px;
+           font-weight:600; cursor:pointer; }
+  button:hover { border-color:var(--blue); color:var(--blue); }
+  button:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }
+  #play { min-width:78px; background:var(--blue); border-color:var(--blue); color:white; }
+  #force-toggle[aria-pressed=true] { background:#e8eff6; border-color:var(--blue); color:var(--blue); }
+  #force-toggle:disabled { opacity:.45; cursor:not-allowed; border-color:#aebdb3; color:var(--ink); }
+  #frame-toggle[aria-pressed=true] { background:#e8eff6; border-color:var(--blue); color:var(--blue); }
+  #time { flex:1 1 200px; min-width:150px; margin:0 4px; }
+  #clock { flex:0 0 122px; width:122px; text-align:right; font-variant-numeric:tabular-nums;
+           font-size:13px; color:var(--muted); }
+  .foot { margin:17px 2px 0; max-width:920px; color:var(--muted); font-size:13px;
+          line-height:1.55; }
+  .foot code { color:var(--ink); font-size:12px; }
+  @media (max-width:760px) {
+    main { padding:22px 14px 42px; }
+    h1 { font-size:27px; }
+    .panels,.control-grid { grid-template-columns:1fr; }
+  }
+</style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LPSCL090TY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LPSCL090TY');
+</script></head>
+<body>
+<main>
+  <h1>A bead on a rotating hoop</h1>
+  <p class="intro">Set the hoop's dimensionless rotation rate Ω and the bead's starting angle β, then play its motion. The bead starts from rest and slides without friction. Switch frames to see the hoop either rotate in the lab or stay still around the moving bead.</p>
+
+  <div class="panels">
+    <section class="panel" aria-labelledby="scene-title">
+      <h2 id="scene-title">The hoop and bead</h2>
+      <p class="sub" id="frame-note">Lab frame: the hoop rotates about the dashed vertical axis.</p>
+      <svg id="scene" viewBox="0 0 540 450" role="img" aria-label="Animated view of the hoop and bead">
+        <line x1="270" y1="26" x2="270" y2="421" stroke="#b9c5bb" stroke-width="2" stroke-dasharray="6 7"/>
+        <text x="279" y="42" class="svg-small">rotation axis</text>
+        <path id="orbit" fill="none" stroke="#cdd9d1" stroke-width="2" stroke-dasharray="4 5"/>
+        <path id="hoop-back" fill="none" stroke="#bdc9bf" stroke-width="5" stroke-linecap="round"/>
+        <path id="hoop-front" fill="none" stroke="#697f71" stroke-width="5" stroke-linecap="round"/>
+        <path id="trail" fill="none" stroke="#e8b86f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path id="theta-reference" fill="none" stroke="#7996b4" stroke-width="2" stroke-dasharray="4 4"/>
+        <path id="theta-radius" fill="none" stroke="#3f6fa8" stroke-width="2.5"/>
+        <path id="theta-arc" fill="none" stroke="#3f6fa8" stroke-width="2.5"/>
+        <text id="theta-label" fill="#3f6fa8" font-size="17" font-family="Georgia,serif" text-anchor="middle" dominant-baseline="central">θ(τ)</text>
+        <circle id="center" cx="270" cy="222" r="4" fill="#697f71"/>
+        <defs>
+          <marker id="head-gravity" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#2f7d55"/></marker>
+          <marker id="head-centrifugal" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#b03a30"/></marker>
+          <marker id="head-normal" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1f7a80"/></marker>
+        </defs>
+        <g id="forces" visibility="hidden" font-family="Georgia,serif" font-size="15" text-anchor="middle" dominant-baseline="central">
+          <line id="force-gravity" stroke="#2f7d55" stroke-width="3" marker-end="url(#head-gravity)"/>
+          <line id="force-centrifugal" stroke="#b03a30" stroke-width="3" marker-end="url(#head-centrifugal)"/>
+          <line id="force-normal" stroke="#1f7a80" stroke-width="3" marker-end="url(#head-normal)"/>
+          <text id="label-gravity" fill="#2f7d55">mg</text>
+          <text id="label-centrifugal" fill="#b03a30">mω²ρ</text>
+          <text id="label-normal" fill="#1f7a80">N</text>
+          <text x="516" y="18" class="svg-small" font-size="13" text-anchor="end" dominant-baseline="auto">arrows share one scale</text>
+        </g>
+        <circle id="bead-halo" r="15" fill="#b26a12" opacity=".16"/>
+        <circle id="bead" r="8.5" fill="#b26a12" stroke="white" stroke-width="2.5"/>
+        <text x="24" y="18" class="svg-small">θ(τ = 0) = β; angles start at the bottom of the hoop</text>
+      </svg>
+      <div class="readouts" aria-live="off">
+        <div class="readout"><span>Current angle <i class="sym">θ(τ)</i></span><strong id="theta-now">—</strong></div>
+        <div class="readout"><span>Height <i class="sym">z(τ)/r</i></span><strong id="height-now">—</strong></div>
+        <div class="readout"><span>Distance from axis <i class="sym">ρ(τ)/r</i></span><strong id="rho-now">—</strong></div>
+        <div class="readout"><span>Sliding rate <i class="sym">θ′(τ)</i></span><strong id="rate-now">—</strong></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <h2 id="history-title">θ versus τ</h2>
+      <p class="sub">The blue curve is θ(τ). Dashed purple lines mark the stable equilibrium angles θ<sub>eq</sub> (and −θ<sub>eq</sub> when Ω &gt; 1).</p>
+      <svg id="history" viewBox="0 0 650 340" role="img" aria-label="Graph of bead angle theta versus dimensionless time tau">
+        <g id="grid"></g>
+        <path id="history-future" fill="none" stroke="#d8e1d9" stroke-width="2"/>
+        <path id="history-past" fill="none" stroke="#3f6fa8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <line id="time-line" y1="37" y2="271" stroke="#7892a9" stroke-width="1.5" stroke-dasharray="4 5"/>
+        <circle id="time-dot" r="6" fill="#3f6fa8" stroke="white" stroke-width="2"/>
+      </svg>
+      <div class="readouts" aria-live="off">
+        <div class="readout"><span>Dimensionless time <i class="sym">τ</i></span><strong id="tau-now">—</strong></div>
+        <div class="readout"><span>Hoop rotation <i class="sym">φ(τ)</i></span><strong id="turns-now">—</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="controls" aria-labelledby="controls-title">
+    <h2 id="controls-title">Set up the motion</h2>
+    <div class="control-grid">
+      <div class="control"><label for="spin">Rotation rate Ω = ω√(r/g)</label>
+        <div class="input-row"><input id="spin" type="range" min="0" max="3" step="0.01" value="1.5">
+          <input id="spin-number" type="number" min="0" max="3" step="any" value="1.50" aria-label="Type rotation rate Omega"><span class="unit"></span></div>
+        <small class="help">Ω = 1 is where the positive-side equilibrium first appears.</small></div>
+      <div class="control"><label for="initial-angle">Starting angle β = θ(τ = 0)</label>
+        <div class="input-row"><input id="initial-angle" type="range" min="-180" max="180" step="0.1" value="25">
+          <input id="angle-number" type="number" min="-180" max="180" step="any" value="25.0" aria-label="Type starting angle beta"><span class="unit">°</span></div>
+        <small class="help">Measured from the bottom; θ′(τ = 0) is fixed at zero.</small></div>
+    </div>
+    <div class="equilibrium">
+      <span>Stable equilibrium β<sub>eq</sub>:</span><strong id="equilibrium-value">—</strong>
+      <button id="set-equilibrium" type="button">Set β to equilibrium</button>
+      <label class="perturb" for="perturbation">Perturb by <input id="perturbation" type="number" min="-30" max="30" step="0.1" value="5.0">°</label>
+      <button id="set-perturbed" type="button">Set β to equilibrium + perturbation</button>
+      <p id="equilibrium-note">The negative-side equilibrium is the mirror image when Ω &gt; 1.</p>
+    </div>
+    <div class="transport">
+      <button id="play" type="button" aria-label="Play simulation">Play</button>
+      <button id="reset" type="button">Reset τ to 0</button>
+      <button id="center-start" type="button">Start at center height</button>
+      <button id="frame-toggle" type="button" aria-pressed="false">Use rotating frame</button>
+      <button id="force-toggle" type="button" aria-pressed="false" disabled title="Available in the rotating frame">Show forces</button>
+      <input id="time" type="range" min="0" max="20" step="0.01" value="0" aria-label="Dimensionless simulation time tau">
+      <span id="clock">τ = 0.00 / 20</span>
+    </div>
+  </section>
+
+  <p class="foot">Radius is normalized to <code>r = 1</code>. Physical time is <code>t</code>; the simulation uses dimensionless time <code>τ = t√(g/r)</code>. It solves <code>d²θ/dτ² = sinθ(Ω² cosθ − 1)</code> with <code>θ(τ = 0) = β</code> and <code>dθ/dτ = 0</code> initially. The hoop turns through <code>φ(τ) = Ωτ</code>. No friction is added.</p>
+</main>
+<script>
+(() => {
+  const tauMax = 20, dTau = 1 / 240, stepCount = Math.round(tauMax / dTau);
+  const $ = (id) => document.getElementById(id);
+  const controls = {spin: $('spin'), spinNumber: $('spin-number'),
+                    angle: $('initial-angle'), angleNumber: $('angle-number'),
+                    perturbation: $('perturbation')};
+  const scene = {
+    orbit: $('orbit'), back: $('hoop-back'), front: $('hoop-front'), trail: $('trail'),
+    bead: $('bead'), halo: $('bead-halo'),
+    reference: $('theta-reference'), radius: $('theta-radius'),
+    arc: $('theta-arc'), angleLabel: $('theta-label')
+  };
+  const graph = {
+    grid: $('grid'), future: $('history-future'), past: $('history-past'),
+    line: $('time-line'), dot: $('time-dot')
+  };
+  let data, tau = 0, playing = false, frame = null, lastStamp = null;
+  let rotatingFrame = false, showForces = false, forceScale = 60;
+  let graphRange = [-10, 10], graphTicks = [-10, 0, 10];
+  const forces = {group: $('forces'),
+    gravity: [$('force-gravity'), $('label-gravity')],
+    centrifugal: [$('force-centrifugal'), $('label-centrifugal')],
+    normal: [$('force-normal'), $('label-normal')]};
+
+  function params() {
+    return {omega: +controls.spinNumber.value,
+            beta0: +controls.angleNumber.value * Math.PI / 180};
+  }
+
+  function stableAngle(omega) {
+    return omega <= 1 ? 0 : Math.acos(1 / (omega * omega)) * 180 / Math.PI;
+  }
+
+  function acceleration(theta, p) {
+    return Math.sin(theta) * (p.omega * p.omega * Math.cos(theta) - 1);
+  }
+
+  function advance(theta, rate, h, p) {
+    const a1 = acceleration(theta, p), b1 = rate;
+    const a2 = acceleration(theta + h * b1 / 2, p), b2 = rate + h * a1 / 2;
+    const a3 = acceleration(theta + h * b2 / 2, p), b3 = rate + h * a2 / 2;
+    const a4 = acceleration(theta + h * b3, p), b4 = rate + h * a3;
+    return [theta + h * (b1 + 2 * b2 + 2 * b3 + b4) / 6,
+            rate + h * (a1 + 2 * a2 + 2 * a3 + a4) / 6];
+  }
+
+  function simulate() {
+    const p = params(), theta = new Float64Array(stepCount + 1), rate = new Float64Array(stepCount + 1);
+    theta[0] = p.beta0; rate[0] = 0;
+    for (let i = 0; i < stepCount; i++) {
+      [theta[i + 1], rate[i + 1]] = advance(theta[i], rate[i], dTau, p);
+    }
+    return {p, theta, rate};
+  }
+
+  function at(timeTau) {
+    const pos = Math.min(stepCount, timeTau / dTau), i = Math.floor(pos), q = pos - i;
+    if (i >= stepCount) return {theta:data.theta[stepCount], rate:data.rate[stepCount]};
+    return {theta:data.theta[i] * (1 - q) + data.theta[i + 1] * q,
+            rate:data.rate[i] * (1 - q) + data.rate[i + 1] * q};
+  }
+
+  // Lab view: fixed elevated camera. Rotating view: look straight at the hoop's
+  // plane, so its circular shape and theta arc are undistorted.
+  const AZ = .74, ELEV = .31, SCALE = 155, CX = 270, CY = 222;
+  function position(theta, phi) {
+    return [Math.sin(theta) * Math.cos(phi), Math.sin(theta) * Math.sin(phi), -Math.cos(theta)];
+  }
+  function project(p) {
+    const [x, y, z] = p;
+    if (rotatingFrame) return [CX + SCALE * x, CY - SCALE * z];
+    return [CX + SCALE * (Math.cos(AZ) * x - Math.sin(AZ) * y),
+            CY - SCALE * (Math.cos(ELEV) * z - Math.sin(ELEV) * (Math.sin(AZ) * x + Math.cos(AZ) * y))];
+  }
+  function depth(p) {
+    return Math.cos(ELEV) * (Math.sin(AZ) * p[0] + Math.cos(AZ) * p[1]) + Math.sin(ELEV) * p[2];
+  }
+  function xy(p) { return p[0].toFixed(2) + ' ' + p[1].toFixed(2); }
+
+  function drawScene(state) {
+    const phi = rotatingFrame ? 0 : data.p.omega * tau;
+    let back = '', front = '';
+    const n = 240;
+    for (let i = 0; i < n; i++) {
+      const a = 2 * Math.PI * i / n, b = 2 * Math.PI * (i + 1) / n;
+      const pa = position(a, phi), pb = position(b, phi);
+      const segment = 'M ' + xy(project(pa)) + ' L ' + xy(project(pb)) + ' ';
+      if (rotatingFrame || (depth(pa) + depth(pb)) / 2 >= 0) front += segment;
+      else back += segment;
+    }
+    scene.back.setAttribute('d', back);
+    scene.front.setAttribute('d', front);
+
+    const beadWorld = position(state.theta, phi), beadScreen = project(beadWorld);
+    const orbitRadius = Math.abs(Math.sin(state.theta)), z = beadWorld[2];
+    let orbit = '';
+    for (let i = 0; i <= 120; i++) {
+      const a = 2 * Math.PI * i / 120;
+      orbit += (i ? 'L ' : 'M ') + xy(project([orbitRadius * Math.cos(a), orbitRadius * Math.sin(a), z])) + ' ';
+    }
+    scene.orbit.setAttribute('d', rotatingFrame || orbitRadius < .015 ? '' : orbit);
+
+    const angleElements = [scene.reference, scene.radius, scene.arc, scene.angleLabel];
+    for (const el of angleElements) el.setAttribute('visibility', rotatingFrame ? 'visible' : 'hidden');
+    if (rotatingFrame) {
+      const center = project([0, 0, 0]), lowerRay = project([0, 0, -.57]);
+      scene.reference.setAttribute('d', 'M ' + xy(center) + ' L ' + xy(lowerRay));
+      scene.radius.setAttribute('d', 'M ' + xy(center) + ' L ' + xy(beadScreen));
+      const wrapped = Math.atan2(Math.sin(state.theta), Math.cos(state.theta));
+      let arc = '';
+      const countArc = Math.max(2, Math.ceil(Math.abs(wrapped) * 24));
+      for (let i = 0; i <= countArc; i++) {
+        const a = wrapped * i / countArc;
+        const p = position(a, 0).map(v => .43 * v);
+        arc += (i ? 'L ' : 'M ') + xy(project(p)) + ' ';
+      }
+      scene.arc.setAttribute('d', Math.abs(wrapped) < .015 ? '' : arc);
+      if (Math.abs(wrapped) < .015) scene.angleLabel.setAttribute('visibility', 'hidden');
+      // Centre the label on the bisector of the angle, just outside the arc.
+      // Small angles leave no room between the rays, so move it past the radius.
+      const side = wrapped >= 0 ? 1 : -1;
+      const labelAngle = Math.abs(wrapped) < .45 ? wrapped + .32 * side : wrapped / 2;
+      const mid = project(position(labelAngle, 0).map(v => .62 * v));
+      scene.angleLabel.setAttribute('x', mid[0].toFixed(2));
+      scene.angleLabel.setAttribute('y', mid[1].toFixed(2));
+    }
+
+    let trail = '';
+    const start = Math.max(0, tau - .65), count = Math.max(2, Math.ceil((tau - start) / .025));
+    for (let i = 0; i <= count; i++) {
+      const trailTau = start + (tau - start) * i / count;
+      const trailPoint = project(position(at(trailTau).theta, rotatingFrame ? 0 : data.p.omega * trailTau));
+      trail += (i ? 'L ' : 'M ') + xy(trailPoint) + ' ';
+    }
+    scene.trail.setAttribute('d', trail);
+    for (const el of [scene.bead, scene.halo]) {
+      el.setAttribute('cx', beadScreen[0].toFixed(2));
+      el.setAttribute('cy', beadScreen[1].toFixed(2));
+    }
+    drawForces(state, beadScreen);
+  }
+
+  // In-plane forces per unit mg, as (x, z) components in the hoop's plane.
+  // The normal force's radial part supplies whatever the centripetal
+  // acceleration θ′² needs beyond gravity and the centrifugal force.
+  function forceVectors(theta, rate, omega) {
+    const s = Math.sin(theta), c = Math.cos(theta);
+    const normal = -(rate * rate + c + omega * omega * s * s);
+    return {gravity: [0, -1], centrifugal: [omega * omega * s, 0],
+            normal: [normal * s, -normal * c]};
+  }
+  function setForceScale() {
+    let biggest = 1;
+    for (let i = 0; i <= stepCount; i += 8) {
+      for (const [fx, fz] of Object.values(forceVectors(data.theta[i], data.rate[i], data.p.omega))) {
+        biggest = Math.max(biggest, Math.hypot(fx, fz));
+      }
+    }
+    forceScale = Math.min(55, 85 / biggest);
+  }
+  function drawForces(state, origin) {
+    const visible = rotatingFrame && showForces;
+    forces.group.setAttribute('visibility', visible ? 'visible' : 'hidden');
+    if (!visible) return;
+    const vectors = forceVectors(state.theta, state.rate, data.p.omega);
+    for (const [name, [fx, fz]] of Object.entries(vectors)) {
+      const [line, label] = forces[name];
+      const dx = forceScale * fx, dy = -forceScale * fz, length = Math.hypot(dx, dy);
+      const show = length > 1.5;
+      line.setAttribute('visibility', show ? 'visible' : 'hidden');
+      label.setAttribute('visibility', show ? 'visible' : 'hidden');
+      if (!show) continue;
+      line.setAttribute('x1', origin[0].toFixed(2));
+      line.setAttribute('y1', origin[1].toFixed(2));
+      line.setAttribute('x2', (origin[0] + dx).toFixed(2));
+      line.setAttribute('y2', (origin[1] + dy).toFixed(2));
+      // Put the label just past the tip, or above it if that would clip.
+      let lx = origin[0] + dx + 17 * dx / length, ly = origin[1] + dy + 13 * dy / length;
+      if (lx < 30 || lx > 510) { lx = Math.max(30, Math.min(510, origin[0] + dx)); ly = origin[1] + dy - 16; }
+      label.setAttribute('x', lx.toFixed(2));
+      label.setAttribute('y', ly.toFixed(2));
+    }
+  }
+
+  const GX0 = 61, GX1 = 625, GY0 = 38, GY1 = 270;
+  const graphX = (timeTau) => GX0 + (GX1 - GX0) * timeTau / tauMax;
+  const graphY = (degrees) => GY1 - (degrees - graphRange[0]) * (GY1 - GY0) / (graphRange[1] - graphRange[0]);
+  // Stable equilibria: the bottom for Ω ≤ 1, otherwise the symmetric pair ±θeq.
+  function equilibria(omega) {
+    const eq = stableAngle(omega);
+    return eq === 0 ? [0] : [eq, -eq];
+  }
+  function setGraphRange() {
+    // Always keep the equilibrium on the bead's starting side in view.
+    let lo = stableAngle(data.p.omega) * (data.p.beta0 < 0 ? -1 : 1), hi = lo;
+    for (let i = 0; i <= stepCount; i++) {
+      const degrees = data.theta[i] * 180 / Math.PI;
+      lo = Math.min(lo, degrees); hi = Math.max(hi, degrees);
+    }
+    const pad = Math.max(4, (hi - lo) * .08);
+    lo -= pad; hi += pad;
+    const step = [5, 10, 15, 30, 45, 90, 180].find(d => (hi - lo) / d <= 6) || 360;
+    graphRange = [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+    graphTicks = [];
+    for (let d = graphRange[0]; d <= graphRange[1] + 1e-9; d += step) graphTicks.push(d);
+  }
+  function setupGraph() {
+    let grid = '';
+    for (const degrees of graphTicks) {
+      const y = graphY(degrees);
+      grid += `<line x1="${GX0}" x2="${GX1}" y1="${y}" y2="${y}" stroke="#e3e9e3"/>`;
+      grid += `<text x="49" y="${y + 5}" text-anchor="end" class="svg-small">${degrees.toFixed(0)}°</text>`;
+    }
+    for (const eq of equilibria(data.p.omega)) {
+      if (eq < graphRange[0] || eq > graphRange[1]) continue;
+      const eqY = graphY(eq);
+      // Sit the label above the line unless that would leave the plot area.
+      const labelY = eqY - GY0 < 22 ? eqY + 18 : eqY - 8;
+      const sign = eq < 0 ? '−' : '';
+      const suffix = eq === 0 ? ' = 0°' : '';
+      grid += `<line x1="${GX0}" x2="${GX1}" y1="${eqY}" y2="${eqY}" stroke="#9e81b3" stroke-width="1.5" stroke-dasharray="6 6"/>`;
+      grid += `<text x="620" y="${labelY}" text-anchor="end" fill="#71549e" font-size="14" font-family="Georgia,serif">${sign}θ<tspan dy="4" font-size="10">eq</tspan><tspan dy="-4">${suffix}</tspan></text>`;
+    }
+    for (const tickTau of [0, 5, 10, 15, 20]) {
+      const x = graphX(tickTau);
+      grid += `<line x1="${x}" x2="${x}" y1="${GY1}" y2="${GY1 + 5}" stroke="#9eb0a3"/>`;
+      grid += `<text x="${x}" y="${GY1 + 24}" text-anchor="middle" class="svg-small">${tickTau}</text>`;
+    }
+    grid += '<text x="343" y="328" text-anchor="middle" class="svg-label">dimensionless time τ</text>';
+    grid += '<text x="15" y="154" transform="rotate(-90 15 154)" text-anchor="middle" class="svg-label">θ(τ) (degrees)</text>';
+    graph.grid.innerHTML = grid;
+  }
+  function historyPath(endIndex) {
+    let path = '';
+    for (let i = 0; i <= endIndex; i += 4) {
+      path += (path ? 'L ' : 'M ') + graphX(i * dTau).toFixed(2) + ' ' + graphY(data.theta[i] * 180 / Math.PI).toFixed(2) + ' ';
+    }
+    if (endIndex % 4 !== 0) {
+      path += 'L ' + graphX(endIndex * dTau).toFixed(2) + ' ' + graphY(data.theta[endIndex] * 180 / Math.PI).toFixed(2);
+    }
+    return path;
+  }
+  function drawGraph(state) {
+    const index = Math.min(stepCount, Math.floor(tau / dTau));
+    graph.past.setAttribute('d', historyPath(index));
+    const x = graphX(tau), y = graphY(state.theta * 180 / Math.PI);
+    graph.line.setAttribute('x1', x.toFixed(2));
+    graph.line.setAttribute('x2', x.toFixed(2));
+    graph.dot.setAttribute('cx', x.toFixed(2));
+    graph.dot.setAttribute('cy', y.toFixed(2));
+  }
+
+  function render() {
+    const state = at(tau), p = data.p;
+    drawScene(state);
+    drawGraph(state);
+    $('theta-now').textContent = (state.theta * 180 / Math.PI).toFixed(1) + '°';
+    $('height-now').textContent = (-Math.cos(state.theta)).toFixed(2);
+    $('rho-now').textContent = Math.abs(Math.sin(state.theta)).toFixed(2);
+    $('rate-now').textContent = state.rate.toFixed(2) + ' rad/τ';
+    $('tau-now').textContent = tau.toFixed(2);
+    $('turns-now').textContent = (p.omega * tau / (2 * Math.PI)).toFixed(2) + ' turns';
+    $('time').value = tau.toFixed(2);
+    $('clock').textContent = 'τ = ' + tau.toFixed(2) + ' / 20';
+  }
+
+  function stop() {
+    playing = false;
+    lastStamp = null;
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null;
+    $('play').textContent = 'Play';
+    $('play').setAttribute('aria-label', 'Play simulation');
+  }
+  function tick(stamp) {
+    if (!playing) return;
+    if (lastStamp !== null) tau = Math.min(tauMax, tau + Math.min(.1, (stamp - lastStamp) / 1000));
+    lastStamp = stamp;
+    render();
+    if (tau >= tauMax) stop();
+    else frame = requestAnimationFrame(tick);
+  }
+  function restart() {
+    stop();
+    data = simulate();
+    tau = 0;
+    setGraphRange();
+    setupGraph();
+    setForceScale();
+    $('equilibrium-value').textContent = stableAngle(data.p.omega).toFixed(2) + '°';
+    $('equilibrium-note').innerHTML = data.p.omega > 1
+      ? 'This is the positive-side stable value; −β<sub>eq</sub> is stable on the opposite side.'
+      : 'The bottom (β = 0°) is the stable equilibrium at this rotation rate.';
+    graph.future.setAttribute('d', historyPath(stepCount));
+    render();
+  }
+
+  controls.spin.addEventListener('input', () => {
+    controls.spinNumber.value = (+controls.spin.value).toFixed(2);
+    restart();
+  });
+  controls.angle.addEventListener('input', () => {
+    controls.angleNumber.value = (+controls.angle.value).toFixed(1);
+    restart();
+  });
+  function commitNumber(number, slider, lo, hi) {
+    const entered = +number.value;
+    const valid = Number.isFinite(entered) && number.value.trim() !== '';
+    const value = valid ? Math.max(lo, Math.min(hi, entered)) : +slider.value;
+    slider.value = value;
+    number.value = String(value);
+    restart();
+  }
+  controls.spinNumber.addEventListener('change', () =>
+    commitNumber(controls.spinNumber, controls.spin, 0, 3));
+  controls.angleNumber.addEventListener('change', () =>
+    commitNumber(controls.angleNumber, controls.angle, -180, 180));
+  function setStartingAngle(degrees) {
+    const angle = Math.max(-180, Math.min(180, degrees));
+    controls.angle.value = angle;
+    controls.angleNumber.value = String(Number(angle.toFixed(6)));
+    restart();
+  }
+  $('play').addEventListener('click', () => {
+    if (playing) { stop(); return; }
+    if (tau >= tauMax) tau = 0;
+    playing = true;
+    lastStamp = null;
+    $('play').textContent = 'Pause';
+    $('play').setAttribute('aria-label', 'Pause simulation');
+    frame = requestAnimationFrame(tick);
+  });
+  $('reset').addEventListener('click', () => { stop(); tau = 0; render(); });
+  $('center-start').addEventListener('click', () => setStartingAngle(90));
+  $('set-equilibrium').addEventListener('click', () =>
+    setStartingAngle(stableAngle(+controls.spinNumber.value)));
+  controls.perturbation.addEventListener('change', () => {
+    const entered = +controls.perturbation.value;
+    controls.perturbation.value = (Number.isFinite(entered) && controls.perturbation.value.trim() !== ''
+      ? Math.max(-30, Math.min(30, entered)) : 5).toFixed(1);
+  });
+  $('set-perturbed').addEventListener('click', () => {
+    controls.perturbation.dispatchEvent(new Event('change'));
+    setStartingAngle(stableAngle(+controls.spinNumber.value) + +controls.perturbation.value);
+  });
+  function updateFrameNote() {
+    let note = rotatingFrame
+      ? 'Rotating frame, face-on: the hoop stays circular and fixed. The blue radius and arc show θ(τ).'
+      : 'Lab frame: the hoop rotates about the dashed vertical axis.';
+    if (rotatingFrame && showForces) {
+      note += ' Only in-plane forces are shown; the Coriolis force is perpendicular to the hoop.';
+    }
+    $('frame-note').textContent = note;
+  }
+  $('force-toggle').addEventListener('click', () => {
+    showForces = !showForces;
+    $('force-toggle').textContent = showForces ? 'Hide forces' : 'Show forces';
+    $('force-toggle').setAttribute('aria-pressed', showForces ? 'true' : 'false');
+    updateFrameNote();
+    render();
+  });
+  $('frame-toggle').addEventListener('click', () => {
+    rotatingFrame = !rotatingFrame;
+    $('force-toggle').disabled = !rotatingFrame;
+    $('force-toggle').title = rotatingFrame ? '' : 'Available in the rotating frame';
+    $('frame-toggle').textContent = rotatingFrame ? 'Use lab frame' : 'Use rotating frame';
+    $('frame-toggle').setAttribute('aria-pressed', rotatingFrame ? 'true' : 'false');
+    $('scene').setAttribute('aria-label', rotatingFrame
+      ? 'Face-on rotating-frame view of the stationary hoop and moving bead'
+      : 'Three-dimensional lab-frame view of the rotating hoop and bead');
+    updateFrameNote();
+    render();
+  });
+  $('time').addEventListener('input', (event) => {
+    stop();
+    tau = +event.target.value;
+    render();
+  });
+  restart();
+})();
+</script>
+</body>
+</html>
