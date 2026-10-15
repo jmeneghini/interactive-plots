@@ -226,10 +226,11 @@
     const shift = omega <= 1 ? 1 : (omega ** 2 + omega ** -2) / 2;
     return shift - Math.cos(beta) - omega ** 2 / 2 * Math.sin(beta) ** 2;
   }
-  // Top panel: U(beta), the fixed total energy E, and the kinetic energy
-  // K = (dbeta/dtau)^2 / 2 traced live. Bottom panel: the same beta(tau) path
-  // with tau running down from the shared beta axis.
-  const TRACE = {Kpath:2, Kdot:3, tauPath:5, tauDot:6, linkTop:7, linkBottom:8};
+  // Top panel: U(beta), the fixed total energy E, and the bead riding on U with
+  // a bar up to E whose length is the kinetic energy K = (dbeta/dtau)^2 / 2.
+  // Bottom panel: the same beta(tau) path with tau running down from the shared
+  // beta axis.
+  const TRACE = {Kbar:2, bead:3, tauPath:5, tauDot:6, linkTop:7, linkBottom:8};
   function historyLayout(lo, hi, top) {
     const eq = data.equilibrium;
     const values = eq === 0 ? [0] : [-eq, eq];
@@ -258,7 +259,6 @@
   async function drawHistory() {
     const omega = data.omega;
     data.energy = potential(data.beta0 * DEG, omega);  // starts at rest
-    data.kinetic = data.rate.map(w => w ** 2 / 2);
     const span = Math.max(...data.beta) - Math.min(...data.beta);
     const pad = Math.max(25, span * 0.25);
     const lo = Math.max(Math.min(...data.beta) - pad, Math.min(-180, Math.min(...data.beta))),
@@ -272,8 +272,11 @@
         hovertemplate:hover('U')},
       {type:'scatter', mode:'lines', x:[lo, hi], y:[data.energy, data.energy],
         line:{color:'#1a211d', width:1.6, dash:'dot'}, hovertemplate:hover('E')},
-      {type:'scatter', mode:'lines', x:[], y:[], line:{color:'#b26a12', width:2.5},
-        hovertemplate:hover('K')},
+      // Seeded with placeholder points: Plotly only builds a trace's text nodes on a
+      // full draw, so restyle cannot add the K label to a trace that started empty.
+      {type:'scatter', mode:'lines+text', x:[lo, lo, lo], y:[0, 0, 0], text:['', 'K', ''],
+        textposition:'middle right',
+        line:{color:'#b26a12', width:4}, textfont:{color:'#b26a12', size:13}, hoverinfo:'skip'},
       {type:'scatter', mode:'markers', x:[], y:[], hoverinfo:'skip',
         marker:{color:'#b26a12', size:11, line:{color:'#fff', width:2}}},
       {type:'scatter', mode:'lines', x:data.beta, y:data.tau, xaxis:'x2', yaxis:'y2',
@@ -292,11 +295,16 @@
     // Path so far: every stored sample up to tau, then the interpolated present.
     const n = Math.min(data.tau.length, Math.floor(tau / TAU_MAX * (data.tau.length - 1)) + 1);
     const beta = [...data.beta.slice(0, n), state.beta];
-    const K = state.rate ** 2 / 2;
+    const U = potential(state.beta * DEG, data.omega), b = state.beta;
+    // The K bar runs from the bead on U up to the E line; its label sits at mid-height.
+    const label = data.energy - U > 0.06 * history.layout.yaxis.range[1] ? 'K' : '';
     Plotly.restyle(history, {
-      x:[beta, [state.beta], beta, [state.beta], [state.beta, state.beta], [state.beta, state.beta]],
-      y:[[...data.kinetic.slice(0, n), K], [K], [...data.tau.slice(0, n), tau], [tau], [K, 0], [0, tau]],
-    }, [TRACE.Kpath, TRACE.Kdot, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
+      x:[[b, b, b], [b], beta, [b], [b, b], [b, b]],
+      y:[[U, (U + data.energy) / 2, data.energy], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
+    }, [TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
+    Plotly.restyle(history, {text:[['', label, '']]}, [TRACE.Kbar]);
+    $('potential-now').textContent = U.toFixed(3);
+    $('kinetic-now').textContent = (state.rate ** 2 / 2).toFixed(3);
   }
   function render() {
     if (!data) return;
