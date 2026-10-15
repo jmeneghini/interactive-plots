@@ -71,6 +71,14 @@ Pushing to `main` triggers the Pages deploy — usually live in under a minute.
 uv run python tools/build_index.py && uv run python -m http.server -d site 8000
 ```
 
+The rotating hoop page is built with `uv run python projects/phys1/rotating_hoop.py`.
+Its editable HTML and JavaScript live together in `projects/phys1/`; the build
+script copies both to `site/phys1/`. The JavaScript integrates the equation of
+motion (RK4) in the browser whenever settings change. Three.js draws the 3D
+hoop and Plotly.js draws β(𝜏). The page is an ES module, so preview it through
+the HTTP server above rather than a `file://` URL. The first load needs a
+network connection for the pinned Three.js and Plotly CDN files.
+
 ## Environment
 
 Dependencies live in `pyproject.toml` and are pinned in `uv.lock`. Any
