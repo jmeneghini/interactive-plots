@@ -86,3 +86,8 @@ Add a dependency with `uv add <package>`; that edits `pyproject.toml` and
 refreshes `uv.lock`, both of which should be committed. CI runs
 `uv sync --locked`, which fails rather than re-resolving if the lock file is
 out of date.
+
+The quark-flavor page (neutral mesons as vectors in uū, dd̄, ss̄ space) is
+hand-written HTML and JavaScript: edit `projects/quark-flavor/flavor-space.{html,js}`,
+then run `uv run python projects/quark-flavor/flavor_space.py` to copy both into
+`site/quark-flavor/`.
