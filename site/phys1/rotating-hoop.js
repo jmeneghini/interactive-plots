@@ -18,7 +18,8 @@
   const config = {responsive: true, displaylogo: false, scrollZoom: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d']};
   const controls = {spin: $('spin'), spinNumber: $('spin-number'), angle: $('initial-angle'),
-    angleNumber: $('angle-number'), perturbation: $('perturbation')};
+    angleNumber: $('angle-number'), perturbation: $('perturbation'),
+    friction: $('friction'), frictionNumber: $('friction-number')};
   let data, tau = 0, playing = false, rotating = false, forces = false;
   let frame = null, lastStamp = null, restartTimer = null, forceScale = 0.25;
   const history = $('history');
@@ -27,15 +28,19 @@
   function stableAngle(omega) {
     return omega <= 1 ? 0 : Math.acos(1 / omega ** 2) / DEG;
   }
-  function simulate(omega, beta0) {
+  // gamma is a linear drag coefficient: a tangential friction force -gamma * dbeta/dtau
+  // (in units of mg), so the total energy decays at the rate gamma * (dbeta/dtau)^2.
+  function simulate(omega, beta0, gamma = 0) {
     if (!(Number.isFinite(omega) && omega >= 0 && omega <= 3))
       throw new Error('Omega must be between 0 and 3');
     if (!(Number.isFinite(beta0) && beta0 >= -180 && beta0 <= 180))
       throw new Error('Starting angle must be between -180 and 180 degrees');
-    const accel = b => Math.sin(b) * (omega ** 2 * Math.cos(b) - 1);
+    if (!(Number.isFinite(gamma) && gamma >= 0 && gamma <= 2))
+      throw new Error('Friction must be between 0 and 2');
+    const accel = (b, w) => Math.sin(b) * (omega ** 2 * Math.cos(b) - 1) - gamma * w;
     const h = TAU_MAX / (SAMPLES - 1) / SUBSTEPS;
-    const out = {omega, beta0, equilibrium:stableAngle(omega), tau:[], beta:[], rate:[],
-      gravity:[], centrifugal:[], normal:[]};
+    const out = {omega, beta0, gamma, equilibrium:stableAngle(omega), tau:[], beta:[], rate:[],
+      gravity:[], centrifugal:[], normal:[], friction:[]};
     let b = beta0 * DEG, w = 0;
     for (let n = 0; n < SAMPLES; n++) {
       const s = Math.sin(b), c = Math.cos(b);
@@ -47,11 +52,12 @@
       out.gravity.push([0, -1]);
       out.centrifugal.push([omega ** 2 * s, 0]);
       out.normal.push([normal * s, -normal * c]);
+      out.friction.push([-gamma * w * c, -gamma * w * s]);  // along the hoop tangent
       for (let k = 0; k < SUBSTEPS; k++) {  // classic RK4
-        const k1b = w, k1w = accel(b);
-        const k2b = w + h / 2 * k1w, k2w = accel(b + h / 2 * k1b);
-        const k3b = w + h / 2 * k2w, k3w = accel(b + h / 2 * k2b);
-        const k4b = w + h * k3w, k4w = accel(b + h * k3b);
+        const k1b = w, k1w = accel(b, w);
+        const k2b = w + h / 2 * k1w, k2w = accel(b + h / 2 * k1b, k2b);
+        const k3b = w + h / 2 * k2w, k3w = accel(b + h / 2 * k2b, k3b);
+        const k4b = w + h * k3w, k4w = accel(b + h * k3b, k4b);
         b += h / 6 * (k1b + 2 * k2b + 2 * k3b + k4b);
         w += h / 6 * (k1w + 2 * k2w + 2 * k3w + k4w);
       }
@@ -82,7 +88,8 @@
     const pair = name => [lerp(data[name][i][0], data[name][j][0]),
                           lerp(data[name][i][1], data[name][j][1])];
     return {beta:lerp(data.beta[i], data.beta[j]), rate:lerp(data.rate[i], data.rate[j]),
-      gravity:pair('gravity'), centrifugal:pair('centrifugal'), normal:pair('normal')};
+      gravity:pair('gravity'), centrifugal:pair('centrifugal'), normal:pair('normal'),
+      friction:pair('friction')};
   }
 
   // ---- Three.js scene. World z is the rotation axis; the hoop lies in its group's xz plane.
@@ -169,7 +176,8 @@
       hoopGroup.add(group);
       return group;
     }
-    const arrows = {gravity:arrow('#2f7d55'), centrifugal:arrow('#b03a30'), normal:arrow('#1f7a80')};
+    const arrows = {gravity:arrow('#2f7d55'), centrifugal:arrow('#b03a30'), normal:arrow('#1f7a80'),
+      friction:arrow('#5b4636')};
 
     function resize() {
       const {clientWidth:width, clientHeight:height} = container;
@@ -226,11 +234,12 @@
     const shift = omega <= 1 ? 1 : (omega ** 2 + omega ** -2) / 2;
     return shift - Math.cos(beta) - omega ** 2 / 2 * Math.sin(beta) ** 2;
   }
-  // Top panel: U(beta), the fixed total energy E, and the bead riding on U with
-  // a bar up to E whose length is the kinetic energy K = (dbeta/dtau)^2 / 2.
+  // Top panel: U(beta), the total energy E, and the bead riding on U with a bar
+  // up to E whose length is the kinetic energy K = (dbeta/dtau)^2 / 2. Without
+  // friction E is fixed; with it, the E line drops and E0 marks where it started.
   // Bottom panel: the same beta(tau) path with tau running down from the shared
   // beta axis.
-  const TRACE = {Kbar:2, bead:3, tauPath:5, tauDot:6, linkTop:7, linkBottom:8};
+  const TRACE = {E:1, Kbar:2, bead:3, tauPath:5, tauDot:6, linkTop:7, linkBottom:8};
   function historyLayout(lo, hi, top) {
     const eq = data.equilibrium;
     const values = eq === 0 ? [0] : [-eq, eq];
@@ -251,8 +260,6 @@
         ...values.filter(x => x >= lo && x <= hi).map(x => ({x, y:1, xref:'x', yref:'y domain',
           text:`${x < 0 ? '−' : ''}β<sub>eq</sub>`, showarrow:false, yanchor:'bottom',
           font:{color:'#71549e', size:12}})),
-        {x:hi, y:data.energy, xref:'x', yref:'y', text:'E', showarrow:false, xanchor:'right',
-          yanchor:'bottom', font:{color:'#1a211d', size:13}},
       ],
       showlegend:false, uirevision:'history', hovermode:'closest'};
   }
@@ -270,7 +277,8 @@
     await Plotly.react(history, [
       {type:'scatter', mode:'lines', x:curve, y:U, line:{color:'#71549e', width:2.2},
         hovertemplate:hover('U')},
-      {type:'scatter', mode:'lines', x:[lo, hi], y:[data.energy, data.energy],
+      {type:'scatter', mode:'lines+text', x:[lo, hi], y:[data.energy, data.energy], text:['', 'E'],
+        textposition:'top left', textfont:{color:'#1a211d', size:13},
         line:{color:'#1a211d', width:1.6, dash:'dot'}, hovertemplate:hover('E')},
       // Seeded with placeholder points: Plotly only builds a trace's text nodes on a
       // full draw, so restyle cannot add the K label to a trace that started empty.
@@ -289,6 +297,9 @@
         line:{color:'#b26a12', width:1, dash:'dot'}},
       {type:'scatter', mode:'lines', x:[], y:[], xaxis:'x2', yaxis:'y2', hoverinfo:'skip',
         line:{color:'#b26a12', width:1, dash:'dot'}},
+      {type:'scatter', mode:'lines+text', x:[lo, hi], y:[data.energy, data.energy], text:['', 'E₀'],
+        textposition:'top left', textfont:{color:'#9aa49e', size:12}, visible:data.gamma > 0,
+        line:{color:'#c3cbc3', width:1.2, dash:'dot'}, hoverinfo:'skip'},
     ], historyLayout(lo, hi, top), config);
   }
   function drawHistoryState(state) {
@@ -297,14 +308,18 @@
     const beta = [...data.beta.slice(0, n), state.beta];
     const U = potential(state.beta * DEG, data.omega), b = state.beta;
     // The K bar runs from the bead on U up to the E line; its label sits at mid-height.
-    const label = data.energy - U > 0.06 * history.layout.yaxis.range[1] ? 'K' : '';
+    const K = state.rate ** 2 / 2, E = U + K;
+    const label = K > 0.06 * history.layout.yaxis.range[1] ? 'K' : '';
+    const [lo, hi] = history.layout.xaxis.range;
     Plotly.restyle(history, {
-      x:[[b, b, b], [b], beta, [b], [b, b], [b, b]],
-      y:[[U, (U + data.energy) / 2, data.energy], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
-    }, [TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
+      x:[[lo, hi], [b, b, b], [b], beta, [b], [b, b], [b, b]],
+      y:[[E, E], [U, (U + E) / 2, E], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
+    }, [TRACE.E, TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
     Plotly.restyle(history, {text:[['', label, '']]}, [TRACE.Kbar]);
     $('potential-now').textContent = U.toFixed(3);
-    $('kinetic-now').textContent = (state.rate ** 2 / 2).toFixed(3);
+    $('kinetic-now').textContent = K.toFixed(3);
+    $('energy-now').textContent = E.toFixed(3);
+    $('lost-now').textContent = (data.energy - E).toFixed(3);
   }
   function render() {
     if (!data) return;
@@ -336,7 +351,8 @@
   function restart() {
     stop();
     try {
-      data = simulate(Number(controls.spinNumber.value), Number(controls.angleNumber.value));
+      const gamma = $('friction-toggle').checked ? Number(controls.frictionNumber.value) : 0;
+      data = simulate(Number(controls.spinNumber.value), Number(controls.angleNumber.value), gamma);
       tau = 0;
       const maxForce = Math.max(1, ...data.normal.map(v => Math.hypot(...v)),
         ...data.centrifugal.map(v => Math.hypot(...v)));
@@ -373,6 +389,16 @@
   });
   controls.angle.addEventListener('input', () => {
     controls.angleNumber.value = Number(controls.angle.value).toFixed(1); queueRestart();
+  });
+  controls.friction.addEventListener('input', () => {
+    controls.frictionNumber.value = Number(controls.friction.value).toFixed(2); queueRestart();
+  });
+  controls.frictionNumber.addEventListener('change', () => commit(controls.frictionNumber, controls.friction, 0, 2));
+  $('friction-toggle').addEventListener('change', () => {
+    const on = $('friction-toggle').checked;
+    controls.friction.disabled = controls.frictionNumber.disabled = !on;
+    $('friction-key').hidden = !on;
+    queueRestart();
   });
   controls.spinNumber.addEventListener('change', () => commit(controls.spinNumber, controls.spin, 0, 3));
   controls.angleNumber.addEventListener('change', () => commit(controls.angleNumber, controls.angle, -180, 180));

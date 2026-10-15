@@ -11,7 +11,7 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
 }}
 </script>
-<script src="./rotating-hoop.js?v=2269879e7a" defer></script>
+<script src="./rotating-hoop.js?v=36b4d5d09a" defer></script>
 <style>
   :root { color-scheme:light; --ink:#1a211d; --muted:#637168; --paper:#f6f8f5; --line:#dce4dc; --blue:#3f6fa8; --orange:#b26a12; }
   * { box-sizing:border-box; }
@@ -73,7 +73,7 @@
       <h2 id="scene-title">The hoop and bead</h2>
       <p class="sub" id="frame-note">Lab frame: the hoop rotates about the vertical axis. Drag to orbit the 3D view.</p>
       <div id="scene" class="plot" role="img" aria-label="Three-dimensional view of the rotating hoop and bead"></div>
-      <p id="force-legend" class="force-key" hidden><span><b style="background:#2f7d55"></b>Gravity</span><span><b style="background:#b03a30"></b>Centrifugal</span><span><b style="background:#1f7a80"></b>Normal</span></p>
+      <p id="force-legend" class="force-key" hidden><span><b style="background:#2f7d55"></b>Gravity</span><span><b style="background:#b03a30"></b>Centrifugal</span><span><b style="background:#1f7a80"></b>Normal</span><span id="friction-key" hidden><b style="background:#5b4636"></b>Friction</span></p>
       <div class="readouts">
         <div class="readout"><span>Current angle β(𝜏)</span><strong id="beta-now">—</strong></div>
         <div class="readout"><span>Height z/r</span><strong id="height-now">—</strong></div>
@@ -83,13 +83,15 @@
     </section>
     <section class="panel" aria-labelledby="history-title">
       <h2 id="history-title">Energy and β(𝜏)</h2>
-      <p class="sub">Top: the bead rides on the effective potential <b style="color:#71549e">U(β)</b>; the <b style="color:#b26a12">orange bar</b> up to the dotted total energy <b>E</b> is its kinetic energy K. Bottom: β(𝜏) on the same β axis, with 𝜏 running downward.</p>
+      <p class="sub">Top: the bead rides on the effective potential <b style="color:#71549e">U(β)</b>; the <b style="color:#b26a12">orange bar</b> up to the dotted total energy <b>E</b> is its kinetic energy K. With friction on, E sinks below its starting value E₀. Bottom: β(𝜏) on the same β axis, with 𝜏 running downward.</p>
       <div id="history" class="plot" role="img" aria-label="Bead on the effective potential versus angle, above angle versus dimensionless time"></div>
       <div class="readouts">
         <div class="readout"><span>Dimensionless time 𝜏</span><strong id="tau-now">—</strong></div>
         <div class="readout"><span>Hoop rotation φ(𝜏)</span><strong id="turns-now">—</strong></div>
         <div class="readout"><span>Potential energy U / mgr</span><strong id="potential-now">—</strong></div>
         <div class="readout"><span>Kinetic energy K / mgr</span><strong id="kinetic-now">—</strong></div>
+        <div class="readout"><span>Total energy E / mgr</span><strong id="energy-now">—</strong></div>
+        <div class="readout"><span>Lost to friction / mgr</span><strong id="lost-now">—</strong></div>
       </div>
     </section>
   </div>
@@ -98,11 +100,12 @@
     <div class="control-grid">
       <div class="control"><label for="spin">Rotation rate Ω = 2πf√(r/g)</label><div class="input-row"><input id="spin" type="range" min="0" max="3" step="0.01" value="1.5"><input id="spin-number" type="number" min="0" max="3" step="any" value="1.50" aria-label="Rotation rate Omega"></div><small class="help">Ω = 1 is where the side equilibria first appear.</small></div>
       <div class="control"><label for="initial-angle">Starting angle β₀ from the bottom</label><div class="input-row"><input id="initial-angle" type="range" min="-180" max="180" step="0.1" value="25"><input id="angle-number" type="number" min="-180" max="180" step="any" value="25.0" aria-label="Starting angle beta zero">°</div><small class="help">The bead starts with dβ/d𝜏 = 0.</small></div>
+      <div class="control"><label for="friction"><input id="friction-toggle" type="checkbox"> Friction: linear drag γ</label><div class="input-row"><input id="friction" type="range" min="0" max="2" step="0.01" value="0.15" disabled><input id="friction-number" type="number" min="0" max="2" step="any" value="0.15" disabled aria-label="Friction coefficient gamma"></div><small class="help">Adds a force −γ dβ/d𝜏 along the hoop (units of <i>mg</i>), so E drains away at the rate γ(dβ/d𝜏)².</small></div>
     </div>
     <div class="equilibrium"><span>Stable equilibrium β<sub>eq</sub>:</span><strong id="equilibrium-value">—</strong><button id="set-equilibrium" type="button">Set β₀ to equilibrium</button><label class="perturb" for="perturbation">Perturb by <input id="perturbation" type="number" min="-30" max="30" step="0.1" value="5.0">°</label><button id="set-perturbed" type="button">Set β₀ to equilibrium + perturbation</button><p id="equilibrium-note"></p></div>
     <div class="transport"><button id="play" type="button" disabled>Play</button><button id="reset" type="button" disabled>Reset 𝜏 to 0</button><button id="center-start" type="button" disabled>Start at center height</button><button id="frame-toggle" type="button" disabled aria-pressed="false">Use rotating frame</button><button id="force-toggle" type="button" disabled aria-pressed="false">Show forces</button><input id="time" type="range" min="0" max="20" step="0.01" value="0" disabled aria-label="Dimensionless simulation time tau"><span id="clock">𝜏 = 0.00 / 20</span></div>
   </section>
-  <div class="notes"><p>Lengths are in hoop radii <i>r</i>; 𝜏 = t√(g/r). The equation is <code>d²β/d𝜏² = sin β (Ω² cos β − 1)</code>. The hoop's rotation is φ = Ω𝜏. In the rotating frame the energy E = ½(dβ/d𝜏)² + U(β) is conserved, with U(β) = −cos β − ½Ω² sin²β in units of <i>mgr</i>, shifted by a constant so its minimum is zero. At Ω &gt; 1, the two stable angles are ±arccos(1/Ω²).</p><p>Force vectors in the rotating frame show gravity, centrifugal force, and the in-plane normal force in units of <i>mg</i>. The Coriolis force is perpendicular to the hoop's plane.</p></div>
+  <div class="notes"><p>Lengths are in hoop radii <i>r</i>; 𝜏 = t√(g/r). The equation is <code>d²β/d𝜏² = sin β (Ω² cos β − 1) − γ dβ/d𝜏</code>, with γ = 0 when friction is off. The hoop's rotation is φ = Ω𝜏. In the rotating frame the energy E = ½(dβ/d𝜏)² + U(β) is conserved without friction, with U(β) = −cos β − ½Ω² sin²β in units of <i>mgr</i>, shifted by a constant so its minimum is zero. At Ω &gt; 1, the two stable angles are ±arccos(1/Ω²).</p><p>Force vectors in the rotating frame show gravity, centrifugal force, the in-plane normal force, and (when it is on) the friction force along the hoop, in units of <i>mg</i>. The Coriolis force is perpendicular to the hoop's plane.</p></div>
 </main>
 </body>
 </html>
