@@ -1,5 +1,5 @@
 /* Bead-on-a-rotating-hoop physics and browser controls.
-   Three.js draws the hoop scene; Plotly draws the beta(tau) history. */
+   Three.js draws the hoop scene; Plotly draws the energy diagram and beta(tau). */
 
 // A classic script with dynamic imports, so the page also works from file://,
 // where browsers refuse to load <script type="module"> files.
@@ -219,29 +219,84 @@
     return {update, setFrame};
   })();
 
-  function historyLayout() {
+  // Effective potential in the rotating frame, in units of mgr, shifted so its
+  // minimum is zero: U(beta) = 1 - cos(beta) at Omega <= 1, and above that the
+  // side wells at cos(beta) = 1/Omega^2 sit at U = 0.
+  function potential(beta, omega) {
+    const shift = omega <= 1 ? 1 : (omega ** 2 + omega ** -2) / 2;
+    return shift - Math.cos(beta) - omega ** 2 / 2 * Math.sin(beta) ** 2;
+  }
+  // Top panel: U(beta), the fixed total energy E, and the kinetic energy
+  // K = (dbeta/dtau)^2 / 2 traced live. Bottom panel: the same beta(tau) path
+  // with tau running down from the shared beta axis.
+  const TRACE = {Kpath:2, Kdot:3, tauPath:5, tauDot:6, linkTop:7, linkBottom:8};
+  function historyLayout(lo, hi, top) {
     const eq = data.equilibrium;
-    const sameSide = data.beta0 < 0 ? -eq : eq;
-    const lo = Math.min(...data.beta, sameSide), hi = Math.max(...data.beta, sameSide);
-    const pad = Math.max(5, (hi - lo) * 0.1);
     const values = eq === 0 ? [0] : [-eq, eq];
-    return {margin:{l:56, r:15, t:8, b:52}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
-      xaxis:{title:'dimensionless time 𝜏', range:[0, TAU_MAX], fixedrange:true, gridcolor:'#e8eee8'},
-      yaxis:{title:'β (degrees)', range:[lo - pad, hi + pad], fixedrange:true, gridcolor:'#e8eee8'},
-      shapes:values.map(y => ({type:'line', x0:0, x1:TAU_MAX, y0:y, y1:y,
-        line:{color:'#9e81b3', width:1.5, dash:'dash'}})),
-      annotations:values.filter(y => y >= lo - pad && y <= hi + pad).map(y => ({
-        x:19.8, y, text:`${y < 0 ? '−' : ''}β<sub>eq</sub>`, showarrow:false,
-        xanchor:'right', yshift:12, font:{color:'#71549e', size:12}})),
-      showlegend:false, uirevision:'history'};
+    const grid = '#e8eee8';
+    return {margin:{l:62, r:15, t:24, b:12}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+      xaxis:{anchor:'y', range:[lo, hi], fixedrange:true, gridcolor:grid, zeroline:false,
+        title:{text:'β (degrees)', standoff:4}, showline:true, linecolor:'#8a948e'},
+      yaxis:{domain:[0.55, 1], range:[0, top], fixedrange:true, gridcolor:grid,
+        zeroline:false, title:{text:'energy / mgr'}},
+      xaxis2:{anchor:'y2', matches:'x', showticklabels:false, fixedrange:true, gridcolor:grid,
+        zeroline:false},
+      yaxis2:{domain:[0, 0.43], range:[TAU_MAX, 0], fixedrange:true, gridcolor:grid,
+        zeroline:false, title:{text:'𝜏 (increasing downward)'}},
+      shapes:values.flatMap(x => ['y', 'y2'].map(yref => ({type:'line', x0:x, x1:x,
+        xref:yref === 'y' ? 'x' : 'x2', yref:`${yref} domain`, y0:0, y1:1,
+        line:{color:'#9e81b3', width:1.2, dash:'dash'}}))),
+      annotations:[
+        ...values.filter(x => x >= lo && x <= hi).map(x => ({x, y:1, xref:'x', yref:'y domain',
+          text:`${x < 0 ? '−' : ''}β<sub>eq</sub>`, showarrow:false, yanchor:'bottom',
+          font:{color:'#71549e', size:12}})),
+        {x:hi, y:data.energy, xref:'x', yref:'y', text:'E', showarrow:false, xanchor:'right',
+          yanchor:'bottom', font:{color:'#1a211d', size:13}},
+      ],
+      showlegend:false, uirevision:'history', hovermode:'closest'};
   }
   async function drawHistory() {
+    const omega = data.omega;
+    data.energy = potential(data.beta0 * DEG, omega);  // starts at rest
+    data.kinetic = data.rate.map(w => w ** 2 / 2);
+    const span = Math.max(...data.beta) - Math.min(...data.beta);
+    const pad = Math.max(25, span * 0.25);
+    const lo = Math.max(Math.min(...data.beta) - pad, Math.min(-180, Math.min(...data.beta))),
+          hi = Math.min(Math.max(...data.beta) + pad, Math.max(180, Math.max(...data.beta)));
+    const curve = Array.from({length:601}, (_, i) => lo + (hi - lo) * i / 600);
+    const U = curve.map(b => potential(b * DEG, omega));
+    const top = Math.max(data.energy, ...U) * 1.08 || 1;
+    const hover = (label, axis) => `β = %{x:.1f}°<br>${label} = %{y:.${axis === 'y2' ? 2 : 3}f}<extra></extra>`;
     await Plotly.react(history, [
-      {type:'scatter', mode:'lines', x:data.tau, y:data.beta,
-        line:{color:'#3f6fa8', width:2.5}, hovertemplate:'𝜏 = %{x:.2f}<br>β = %{y:.1f}°<extra></extra>'},
-      {type:'scatter', mode:'markers', x:[0], y:[data.beta0],
-        marker:{color:'#b26a12', size:11, line:{color:'#fff', width:2}}, hoverinfo:'skip'}
-    ], historyLayout(), config);
+      {type:'scatter', mode:'lines', x:curve, y:U, line:{color:'#71549e', width:2.2},
+        hovertemplate:hover('U')},
+      {type:'scatter', mode:'lines', x:[lo, hi], y:[data.energy, data.energy],
+        line:{color:'#1a211d', width:1.6, dash:'dot'}, hovertemplate:hover('E')},
+      {type:'scatter', mode:'lines', x:[], y:[], line:{color:'#b26a12', width:2.5},
+        hovertemplate:hover('K')},
+      {type:'scatter', mode:'markers', x:[], y:[], hoverinfo:'skip',
+        marker:{color:'#b26a12', size:11, line:{color:'#fff', width:2}}},
+      {type:'scatter', mode:'lines', x:data.beta, y:data.tau, xaxis:'x2', yaxis:'y2',
+        line:{color:'#c9d6e6', width:1.5}, hoverinfo:'skip'},
+      {type:'scatter', mode:'lines', x:[], y:[], xaxis:'x2', yaxis:'y2',
+        line:{color:'#3f6fa8', width:2.5}, hovertemplate:'β = %{x:.1f}°<br>𝜏 = %{y:.2f}<extra></extra>'},
+      {type:'scatter', mode:'markers', x:[], y:[], xaxis:'x2', yaxis:'y2', hoverinfo:'skip',
+        marker:{color:'#b26a12', size:11, line:{color:'#fff', width:2}}},
+      {type:'scatter', mode:'lines', x:[], y:[], hoverinfo:'skip',
+        line:{color:'#b26a12', width:1, dash:'dot'}},
+      {type:'scatter', mode:'lines', x:[], y:[], xaxis:'x2', yaxis:'y2', hoverinfo:'skip',
+        line:{color:'#b26a12', width:1, dash:'dot'}},
+    ], historyLayout(lo, hi, top), config);
+  }
+  function drawHistoryState(state) {
+    // Path so far: every stored sample up to tau, then the interpolated present.
+    const n = Math.min(data.tau.length, Math.floor(tau / TAU_MAX * (data.tau.length - 1)) + 1);
+    const beta = [...data.beta.slice(0, n), state.beta];
+    const K = state.rate ** 2 / 2;
+    Plotly.restyle(history, {
+      x:[beta, [state.beta], beta, [state.beta], [state.beta, state.beta], [state.beta, state.beta]],
+      y:[[...data.kinetic.slice(0, n), K], [K], [...data.tau.slice(0, n), tau], [tau], [K, 0], [0, tau]],
+    }, [TRACE.Kpath, TRACE.Kdot, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
   }
   function render() {
     if (!data) return;
@@ -254,7 +309,7 @@
     $('turns-now').textContent = (data.omega * tau / (2 * Math.PI)).toFixed(2) + ' turns';
     $('time').value = tau.toFixed(2);
     $('clock').textContent = `𝜏 = ${tau.toFixed(2)} / 20`;
-    Plotly.restyle(history, {x:[[tau]], y:[[state.beta]]}, [1]);
+    drawHistoryState(state);
     view.update();
   }
   function tick(stamp) {

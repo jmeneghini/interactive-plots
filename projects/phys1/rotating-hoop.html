@@ -27,6 +27,7 @@
   .panel,.controls,.notes { min-width:0; background:#fff; border:1px solid var(--line); border-radius:11px; padding:16px; }
   .sub { min-height:2.8em; margin:0; font-size:13px; color:var(--muted); }
   .plot { width:100%; height:430px; }
+  #history { height:600px; }
   #scene { overflow:hidden; border-radius:6px; }
   #scene canvas { display:block; touch-action:none; }
   .readouts { display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top:1px solid var(--line); padding-top:13px; }
@@ -65,7 +66,7 @@
 <body>
 <main>
   <h1>A bead on a rotating hoop</h1>
-  <p class="intro">Set the hoop's dimensionless rotation rate Ω and starting angle β₀. The bead starts at rest and slides without friction. Three.js draws the hoop; Plotly draws β(𝜏).</p>
+  <p class="intro">Set the hoop's dimensionless rotation rate Ω and starting angle β₀. The bead starts at rest and slides without friction. Three.js draws the hoop; Plotly draws the energy diagram and β(𝜏).</p>
   <p id="status" role="status" aria-live="polite">Loading Three.js and Plotly…</p>
   <div class="panels">
     <section class="panel" aria-labelledby="scene-title">
@@ -81,9 +82,9 @@
       </div>
     </section>
     <section class="panel" aria-labelledby="history-title">
-      <h2 id="history-title">β versus 𝜏</h2>
-      <p class="sub">The blue curve is β(𝜏). Purple dotted lines mark stable equilibrium angles.</p>
-      <div id="history" class="plot" role="img" aria-label="Angle versus dimensionless time"></div>
+      <h2 id="history-title">Energy and β(𝜏)</h2>
+      <p class="sub">Top: effective potential <b style="color:#71549e">U(β)</b>, fixed total energy <b>E</b> (dotted), and kinetic energy <b style="color:#b26a12">K</b> traced live; the dot is the bead. Bottom: β(𝜏) on the same β axis, with 𝜏 running downward.</p>
+      <div id="history" class="plot" role="img" aria-label="Effective potential and kinetic energy versus angle, above angle versus dimensionless time"></div>
       <div class="readouts">
         <div class="readout"><span>Dimensionless time 𝜏</span><strong id="tau-now">—</strong></div>
         <div class="readout"><span>Hoop rotation φ(𝜏)</span><strong id="turns-now">—</strong></div>
@@ -99,7 +100,7 @@
     <div class="equilibrium"><span>Stable equilibrium β<sub>eq</sub>:</span><strong id="equilibrium-value">—</strong><button id="set-equilibrium" type="button">Set β₀ to equilibrium</button><label class="perturb" for="perturbation">Perturb by <input id="perturbation" type="number" min="-30" max="30" step="0.1" value="5.0">°</label><button id="set-perturbed" type="button">Set β₀ to equilibrium + perturbation</button><p id="equilibrium-note"></p></div>
     <div class="transport"><button id="play" type="button" disabled>Play</button><button id="reset" type="button" disabled>Reset 𝜏 to 0</button><button id="center-start" type="button" disabled>Start at center height</button><button id="frame-toggle" type="button" disabled aria-pressed="false">Use rotating frame</button><button id="force-toggle" type="button" disabled aria-pressed="false">Show forces</button><input id="time" type="range" min="0" max="20" step="0.01" value="0" disabled aria-label="Dimensionless simulation time tau"><span id="clock">𝜏 = 0.00 / 20</span></div>
   </section>
-  <div class="notes"><p>Lengths are in hoop radii <i>r</i>; 𝜏 = t√(g/r). The equation is <code>d²β/d𝜏² = sin β (Ω² cos β − 1)</code>. The hoop's rotation is φ = Ω𝜏. At Ω &gt; 1, the two stable angles are ±arccos(1/Ω²).</p><p>Force vectors in the rotating frame show gravity, centrifugal force, and the in-plane normal force in units of <i>mg</i>. The Coriolis force is perpendicular to the hoop's plane.</p></div>
+  <div class="notes"><p>Lengths are in hoop radii <i>r</i>; 𝜏 = t√(g/r). The equation is <code>d²β/d𝜏² = sin β (Ω² cos β − 1)</code>. The hoop's rotation is φ = Ω𝜏. In the rotating frame the energy E = ½(dβ/d𝜏)² + U(β) is conserved, with U(β) = −cos β − ½Ω² sin²β in units of <i>mgr</i>, shifted by a constant so its minimum is zero. At Ω &gt; 1, the two stable angles are ±arccos(1/Ω²).</p><p>Force vectors in the rotating frame show gravity, centrifugal force, and the in-plane normal force in units of <i>mg</i>. The Coriolis force is perpendicular to the hoop's plane.</p></div>
 </main>
 </body>
 </html>
