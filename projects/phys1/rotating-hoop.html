@@ -28,6 +28,10 @@
   .sub { min-height:2.8em; margin:0; font-size:13px; color:var(--muted); }
   .plot { width:100%; height:430px; }
   #history { height:600px; }
+  .potential-panel { margin-top:16px; }
+  .potential-panel .control { max-width:560px; margin:12px 0 4px; }
+  #potential-plot { height:420px; }
+  .potential-panel .readouts { grid-template-columns:repeat(3,1fr); }
   #scene { overflow:hidden; border-radius:6px; }
   #scene canvas { display:block; touch-action:none; }
   .readouts { display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top:1px solid var(--line); padding-top:13px; }
@@ -60,7 +64,7 @@
   .notes p { margin:0 0 8px; }
   .notes p:last-child { margin-bottom:0; }
   code { color:var(--ink); }
-  @media(max-width:760px) { .panels,.control-grid { grid-template-columns:1fr; } .plot { height:380px; } main { padding:20px 12px 38px; } }
+  @media(max-width:760px) { .panels,.control-grid,.potential-panel .readouts { grid-template-columns:1fr; } .plot { height:380px; } main { padding:20px 12px 38px; } }
 </style>
 </head>
 <body>
@@ -105,6 +109,17 @@
       </div>
     </section>
   </div>
+  <section class="panel potential-panel" aria-labelledby="potential-title">
+    <h2 id="potential-title">How Ω shapes the effective potential</h2>
+    <p class="sub">This panel has its own Ω and does not affect the simulation. It plots the unshifted <b style="color:#71549e">U(β) = −cos β − ½Ω² sin²β</b> (units of <i>mgr</i>), so U = −1 at the bottom and U = +1 at the top for every Ω. The faint grey curve is Ω = 0 (gravity only). Filled dots are stable equilibria; open dots are unstable.</p>
+    <div class="control"><label for="potential-spin">Rotation rate Ω for this plot</label><div class="input-row"><input id="potential-spin" type="range" min="0" max="3" step="0.01" value="1.5"><input id="potential-spin-number" type="number" min="0" max="3" step="any" value="1.50" aria-label="Rotation rate Omega for the potential plot"><button id="potential-match" type="button">Use the simulation's Ω</button></div></div>
+    <div id="potential-plot" class="plot" role="img" aria-label="Effective potential versus angle for the chosen rotation rate"></div>
+    <div class="readouts">
+      <div class="readout"><span>Stable angles</span><strong id="potential-stable">—</strong></div>
+      <div class="readout"><span>Minimum U / mgr</span><strong id="potential-min">—</strong></div>
+      <div class="readout"><span>Well depth below U(0) / mgr</span><strong id="potential-depth">—</strong></div>
+    </div>
+  </section>
   <div class="notes"><p>Lengths are in hoop radii <i>r</i>; 𝜏 = t√(g/r). The equation is <code>d²β/d𝜏² = sin β (Ω² cos β − 1) − γ dβ/d𝜏</code>, with γ = 0 when friction is off. The hoop's rotation is φ = Ω𝜏. In the rotating frame the energy E = ½(dβ/d𝜏)² + U(β) is conserved without friction, with U(β) = −cos β − ½Ω² sin²β in units of <i>mgr</i>, shifted by a constant so its minimum is zero. At Ω &gt; 1, the two stable angles are ±arccos(1/Ω²).</p><p>Force vectors in the rotating frame show gravity, centrifugal force, the in-plane normal force, and (when it is on) the friction force along the hoop, in units of <i>mg</i>. The Coriolis force is perpendicular to the hoop's plane.</p></div>
 </main>
 </body>

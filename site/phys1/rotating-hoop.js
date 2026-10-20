@@ -309,11 +309,15 @@
     const U = potential(state.beta * DEG, data.omega), b = state.beta;
     // The K bar runs from the bead on U up to the E line; its label sits at mid-height.
     const K = state.rate ** 2 / 2, E = U + K;
-    const label = K > 0.06 * history.layout.yaxis.range[1] ? 'K' : '';
+    const top = history.layout.yaxis.range[1];
+    const label = K > 0.06 * top ? 'K' : '';
+    // A zero-length bar still draws a dot (Plotly's round line joins), so blank it
+    // out with nulls when K is negligible. Nulls keep the three text nodes alive.
+    const bar = K > 1e-3 * top ? [U, (U + E) / 2, E] : [null, null, null];
     const [lo, hi] = history.layout.xaxis.range;
     Plotly.restyle(history, {
       x:[[lo, hi], [b, b, b], [b], beta, [b], [b, b], [b, b]],
-      y:[[E, E], [U, (U + E) / 2, E], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
+      y:[[E, E], bar, [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
     }, [TRACE.E, TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
     Plotly.restyle(history, {text:[['', label, '']]}, [TRACE.Kbar]);
     $('potential-now').textContent = U.toFixed(3);
@@ -321,6 +325,66 @@
     $('energy-now').textContent = E.toFixed(3);
     $('lost-now').textContent = (data.energy - E).toFixed(3);
   }
+  // ---- Standalone potential panel with its own Omega. It plots the unshifted
+  // U(beta) = -cos(beta) - Omega^2 sin^2(beta) / 2, which is pinned at U = -1 at the
+  // bottom and U = +1 at the top, so changing Omega visibly digs the side wells.
+  const potentialPlot = $('potential-plot');
+  const potentialSpin = $('potential-spin'), potentialSpinNumber = $('potential-spin-number');
+  const rawPotential = (beta, omega) => -Math.cos(beta) - omega ** 2 / 2 * Math.sin(beta) ** 2;
+  const POTENTIAL_BETA = Array.from({length:721}, (_, i) => -180 + i / 2);
+  const POTENTIAL_FREE = POTENTIAL_BETA.map(b => rawPotential(b * DEG, 0));
+  function drawPotential() {
+    const omega = Number(potentialSpinNumber.value);
+    const U = POTENTIAL_BETA.map(b => rawPotential(b * DEG, omega));
+    const eq = stableAngle(omega), split = omega > 1;
+    const stable = split ? [-eq, eq] : [0], unstable = split ? [-180, 0, 180] : [-180, 180];
+    const point = b => rawPotential(b * DEG, omega);
+    const minimum = point(stable[0]);
+    // The top is always U = +1; the bottom follows the wells, padded so they never touch the frame.
+    const lo = Math.min(-1, minimum), pad = 0.1 * (1 - lo);
+    const grid = '#e8eee8';
+    const hover = 'β = %{x:.1f}°<br>U = %{y:.3f}<extra></extra>';
+    Plotly.react(potentialPlot, [
+      {type:'scatter', mode:'lines', x:POTENTIAL_BETA, y:POTENTIAL_FREE, name:'Ω = 0',
+        line:{color:'#c3cbc3', width:1.5, dash:'dot'}, hovertemplate:'Ω = 0<br>' + hover},
+      {type:'scatter', mode:'lines', x:POTENTIAL_BETA, y:U, name:`Ω = ${omega.toFixed(2)}`,
+        line:{color:'#71549e', width:2.6}, hovertemplate:hover},
+      {type:'scatter', mode:'markers', x:unstable, y:unstable.map(point), name:'unstable',
+        marker:{color:'#fff', size:10, line:{color:'#71549e', width:2}}, hovertemplate:'unstable<br>' + hover},
+      {type:'scatter', mode:'markers', x:stable, y:stable.map(point), name:'stable',
+        marker:{color:'#71549e', size:11, line:{color:'#fff', width:2}}, hovertemplate:'stable<br>' + hover},
+    ], {margin:{l:62, r:15, t:16, b:48}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+      xaxis:{range:[-180, 180], fixedrange:true, tickmode:'array', tickvals:[-180, -135, -90, -45, 0, 45, 90, 135, 180],
+        ticksuffix:'°', gridcolor:grid, zeroline:false, showline:true, linecolor:'#8a948e',
+        title:{text:'β from the bottom', standoff:8}},
+      yaxis:{range:[lo - pad, 1 + pad], fixedrange:true, gridcolor:grid, zeroline:true,
+        zerolinecolor:'#cdd6cf', title:{text:'U / mgr'}},
+      shapes:split ? stable.map(x => ({type:'line', x0:x, x1:x, yref:'paper', y0:0, y1:1,
+        line:{color:'#9e81b3', width:1.2, dash:'dash'}})) : [],
+      annotations:split ? stable.map(x => ({x, y:1, yref:'paper', yanchor:'bottom', showarrow:false,
+        text:`${x < 0 ? '−' : ''}β<sub>eq</sub>`, font:{color:'#71549e', size:12}})) : [],
+      showlegend:false, uirevision:'potential', hovermode:'closest'}, config);
+    $('potential-stable').textContent = split ? `±${eq.toFixed(1)}°` : omega === 1 ? '0° (marginal)' : '0°';
+    $('potential-min').textContent = minimum.toFixed(3);
+    $('potential-depth').textContent = (-1 - minimum).toFixed(3);
+  }
+  potentialSpin.addEventListener('input', () => {
+    potentialSpinNumber.value = Number(potentialSpin.value).toFixed(2); drawPotential();
+  });
+  potentialSpinNumber.addEventListener('change', () => {
+    const value = Number(potentialSpinNumber.value);
+    const clamped = potentialSpinNumber.value.trim() && Number.isFinite(value)
+      ? Math.max(0, Math.min(3, value)) : Number(potentialSpin.value);
+    potentialSpinNumber.value = String(clamped);
+    potentialSpin.value = clamped;
+    drawPotential();
+  });
+  $('potential-match').addEventListener('click', () => {
+    potentialSpinNumber.value = controls.spinNumber.value;
+    potentialSpin.value = controls.spinNumber.value;
+    drawPotential();
+  });
+
   function render() {
     if (!data) return;
     const state = sample(tau), beta = state.beta * DEG;
@@ -450,6 +514,7 @@
   } else {
     enableControls();
     restart();
+    drawPotential();
   }
 })().catch(error => {
   console.error(error);
