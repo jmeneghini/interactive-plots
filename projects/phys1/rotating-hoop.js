@@ -280,11 +280,7 @@
       {type:'scatter', mode:'lines+text', x:[lo, hi], y:[data.energy, data.energy], text:['', 'E'],
         textposition:'top left', textfont:{color:'#1a211d', size:13},
         line:{color:'#1a211d', width:1.6, dash:'dot'}, hovertemplate:hover('E')},
-      // Seeded with placeholder points: Plotly only builds a trace's text nodes on a
-      // full draw, so restyle cannot add the K label to a trace that started empty.
-      {type:'scatter', mode:'lines+text', x:[lo, lo, lo], y:[0, 0, 0], text:['', 'K', ''],
-        textposition:'middle right',
-        line:{color:'#b26a12', width:4}, textfont:{color:'#b26a12', size:13}, hoverinfo:'skip'},
+      {type:'scatter', mode:'lines', x:[], y:[], line:{color:'#b26a12', width:4}, hoverinfo:'skip'},
       {type:'scatter', mode:'markers', x:[], y:[], hoverinfo:'skip',
         marker:{color:'#b26a12', size:11, line:{color:'#fff', width:2}}},
       {type:'scatter', mode:'lines', x:data.beta, y:data.tau, xaxis:'x2', yaxis:'y2',
@@ -307,16 +303,13 @@
     const n = Math.min(data.tau.length, Math.floor(tau / TAU_MAX * (data.tau.length - 1)) + 1);
     const beta = [...data.beta.slice(0, n), state.beta];
     const U = potential(state.beta * DEG, data.omega), b = state.beta;
-    // The K bar runs from the bead on U up to the E line; its label sits at mid-height.
+    // The K bar runs from the bead on U up to the E line.
     const K = state.rate ** 2 / 2, E = U + K;
-    // Leading non-breaking spaces keep the label clear of the bar.
-    const label = K > 0.06 * history.layout.yaxis.range[1] ? '\u00a0\u00a0K' : '';
     const [lo, hi] = history.layout.xaxis.range;
     Plotly.restyle(history, {
-      x:[[lo, hi], [b, b, b], [b], beta, [b], [b, b], [b, b]],
-      y:[[E, E], [U, (U + E) / 2, E], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
+      x:[[lo, hi], [b, b], [b], beta, [b], [b, b], [b, b]],
+      y:[[E, E], [U, E], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
     }, [TRACE.E, TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
-    Plotly.restyle(history, {text:[['', label, '']]}, [TRACE.Kbar]);
     $('potential-now').textContent = U.toFixed(3);
     $('kinetic-now').textContent = K.toFixed(3);
     $('energy-now').textContent = E.toFixed(3);
