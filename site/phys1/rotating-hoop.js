@@ -309,15 +309,12 @@
     const U = potential(state.beta * DEG, data.omega), b = state.beta;
     // The K bar runs from the bead on U up to the E line; its label sits at mid-height.
     const K = state.rate ** 2 / 2, E = U + K;
-    const top = history.layout.yaxis.range[1];
-    const label = K > 0.06 * top ? 'K' : '';
-    // A zero-length bar still draws a dot (Plotly's round line joins), so blank it
-    // out with nulls when K is negligible. Nulls keep the three text nodes alive.
-    const bar = K > 1e-3 * top ? [U, (U + E) / 2, E] : [null, null, null];
+    // Leading non-breaking spaces keep the label clear of the bar.
+    const label = K > 0.06 * history.layout.yaxis.range[1] ? '\u00a0\u00a0K' : '';
     const [lo, hi] = history.layout.xaxis.range;
     Plotly.restyle(history, {
       x:[[lo, hi], [b, b, b], [b], beta, [b], [b, b], [b, b]],
-      y:[[E, E], bar, [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
+      y:[[E, E], [U, (U + E) / 2, E], [U], [...data.tau.slice(0, n), tau], [tau], [U, 0], [0, tau]],
     }, [TRACE.E, TRACE.Kbar, TRACE.bead, TRACE.tauPath, TRACE.tauDot, TRACE.linkTop, TRACE.linkBottom]);
     Plotly.restyle(history, {text:[['', label, '']]}, [TRACE.Kbar]);
     $('potential-now').textContent = U.toFixed(3);
@@ -346,9 +343,9 @@
         line:{color:'#c3cbc3', width:1.5, dash:'dot'}, hovertemplate:'Ω = 0<br>' + hover},
       {type:'scatter', mode:'lines', x:POTENTIAL_BETA, y:U, name:`Ω = ${omega.toFixed(2)}`,
         line:{color:'#71549e', width:2.6}, hovertemplate:hover},
-      {type:'scatter', mode:'markers', x:unstable, y:unstable.map(point), name:'unstable',
+      {type:'scatter', mode:'markers', x:unstable, y:unstable.map(point), name:'unstable', cliponaxis:false,
         marker:{color:'#fff', size:10, line:{color:'#71549e', width:2}}, hovertemplate:'unstable<br>' + hover},
-      {type:'scatter', mode:'markers', x:stable, y:stable.map(point), name:'stable',
+      {type:'scatter', mode:'markers', x:stable, y:stable.map(point), name:'stable', cliponaxis:false,
         marker:{color:'#71549e', size:11, line:{color:'#fff', width:2}}, hovertemplate:'stable<br>' + hover},
     ], {margin:{l:62, r:15, t:16, b:48}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
       xaxis:{range:[-180, 180], fixedrange:true, tickmode:'array', tickvals:[-180, -135, -90, -45, 0, 45, 90, 135, 180],
