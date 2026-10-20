@@ -325,23 +325,20 @@
     $('energy-now').textContent = E.toFixed(3);
     $('lost-now').textContent = (data.energy - E).toFixed(3);
   }
-  // ---- Standalone potential panel with its own Omega. It plots the unshifted
-  // U(beta) = -cos(beta) - Omega^2 sin^2(beta) / 2, which is pinned at U = -1 at the
-  // bottom and U = +1 at the top, so changing Omega visibly digs the side wells.
+  // ---- Standalone potential panel with its own Omega. It plots the same shifted
+  // U(beta) as the energy diagram, so its minimum stays at U = 0 for every Omega.
   const potentialPlot = $('potential-plot');
   const potentialSpin = $('potential-spin'), potentialSpinNumber = $('potential-spin-number');
-  const rawPotential = (beta, omega) => -Math.cos(beta) - omega ** 2 / 2 * Math.sin(beta) ** 2;
   const POTENTIAL_BETA = Array.from({length:721}, (_, i) => -180 + i / 2);
-  const POTENTIAL_FREE = POTENTIAL_BETA.map(b => rawPotential(b * DEG, 0));
+  const POTENTIAL_FREE = POTENTIAL_BETA.map(b => potential(b * DEG, 0));
   function drawPotential() {
     const omega = Number(potentialSpinNumber.value);
-    const U = POTENTIAL_BETA.map(b => rawPotential(b * DEG, omega));
+    const U = POTENTIAL_BETA.map(b => potential(b * DEG, omega));
     const eq = stableAngle(omega), split = omega > 1;
     const stable = split ? [-eq, eq] : [0], unstable = split ? [-180, 0, 180] : [-180, 180];
-    const point = b => rawPotential(b * DEG, omega);
-    const minimum = point(stable[0]);
-    // The top is always U = +1; the bottom follows the wells, padded so they never touch the frame.
-    const lo = Math.min(-1, minimum), pad = 0.1 * (1 - lo);
+    const point = b => potential(b * DEG, omega);
+    // The bottom is always U = 0; the top of the hoop, U(180), is the highest point.
+    const top = point(180), pad = 0.06 * top;
     const grid = '#e8eee8';
     const hover = 'β = %{x:.1f}°<br>U = %{y:.3f}<extra></extra>';
     Plotly.react(potentialPlot, [
@@ -357,7 +354,7 @@
       xaxis:{range:[-180, 180], fixedrange:true, tickmode:'array', tickvals:[-180, -135, -90, -45, 0, 45, 90, 135, 180],
         ticksuffix:'°', gridcolor:grid, zeroline:false, showline:true, linecolor:'#8a948e',
         title:{text:'β from the bottom', standoff:8}},
-      yaxis:{range:[lo - pad, 1 + pad], fixedrange:true, gridcolor:grid, zeroline:true,
+      yaxis:{range:[-pad, top + pad], fixedrange:true, gridcolor:grid, zeroline:true,
         zerolinecolor:'#cdd6cf', title:{text:'U / mgr'}},
       shapes:split ? stable.map(x => ({type:'line', x0:x, x1:x, yref:'paper', y0:0, y1:1,
         line:{color:'#9e81b3', width:1.2, dash:'dash'}})) : [],
@@ -365,8 +362,8 @@
         text:`${x < 0 ? '−' : ''}β<sub>eq</sub>`, font:{color:'#71549e', size:12}})) : [],
       showlegend:false, uirevision:'potential', hovermode:'closest'}, config);
     $('potential-stable').textContent = split ? `±${eq.toFixed(1)}°` : omega === 1 ? '0° (marginal)' : '0°';
-    $('potential-min').textContent = minimum.toFixed(3);
-    $('potential-depth').textContent = (-1 - minimum).toFixed(3);
+    $('potential-bottom').textContent = point(0).toFixed(3);
+    $('potential-top').textContent = top.toFixed(3);
   }
   potentialSpin.addEventListener('input', () => {
     potentialSpinNumber.value = Number(potentialSpin.value).toFixed(2); drawPotential();
