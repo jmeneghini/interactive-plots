@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ideal gas under a free piston</title>
+<script src="https://cdn.plot.ly/plotly-4.1.1.min.js" defer></script>
+<script src="./ideal-gas-piston.js?v=4d581f9a5e" defer></script>
+<style>
+  :root { color-scheme:light; --ink:#1a211d; --muted:#637168; --paper:#f6f8f5; --line:#dce4dc; --blue:#3f6fa8; --orange:#b26a12; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1180px; margin:auto; padding:28px 20px 55px; }
+  h1 { font:normal clamp(27px,4vw,35px) Georgia,serif; margin:0 0 8px; }
+  h2 { font:normal 21px Georgia,serif; margin:0 0 3px; }
+  h3 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+  p { line-height:1.5; }
+  .intro { max-width:860px; margin:0 0 18px; color:var(--muted); }
+  #status { padding:10px 13px; background:#e9f0f5; border-radius:7px; margin:0 0 16px; font-size:13px; }
+  #status.error { background:#fae8e5; color:#932e24; }
+  .panels { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .panel,.controls,.notes { min-width:0; background:#fff; border:1px solid var(--line); border-radius:11px; padding:16px; }
+  .sub { min-height:2.8em; margin:0 0 8px; font-size:13px; color:var(--muted); }
+  /* Sized by id: Plotly can reset a plot div's class list when a trace changes type. */
+  #dist,#history { width:100%; height:430px; }
+  .wide { grid-column:1 / -1; }
+  .wide .readouts { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  #history { height:520px; }
+  #gas { display:block; width:100%; aspect-ratio:1/1.04; }
+  .scale { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:4px 10px; font-size:12px; color:var(--muted); margin:6px 0 14px; font-variant-numeric:tabular-nums; }
+  #colorbar { height:10px; border-radius:3px; }
+  .scale-labels { grid-column:2; display:flex; justify-content:space-between; }
+  .readouts { display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top:1px solid var(--line); padding-top:13px; }
+  .readout span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .readout strong { display:block; font-size:19px; font-variant-numeric:tabular-nums; margin-top:3px; }
+  .controls { margin-bottom:16px; padding:19px; }
+  .control-sets { display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+  .control-grid { display:grid; grid-template-columns:1fr; gap:15px; }
+  label { font-size:13px; }
+  .control > label { display:block; margin:0 0 8px; }
+  .input-row { display:flex; align-items:center; gap:10px; }
+  input[type=range] { flex:1; min-width:0; accent-color:var(--blue); cursor:pointer; }
+  input[type=number] { width:82px; padding:7px; border:1px solid #afbeb2; border-radius:5px; font:600 14px system-ui,sans-serif; }
+  select { padding:7px; border:1px solid #afbeb2; border-radius:5px; font:600 13px system-ui,sans-serif; background:#fff; }
+  .help { display:block; color:var(--muted); font-size:12px; margin-top:6px; }
+  .check { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .check input { width:16px; height:16px; accent-color:var(--blue); }
+  .process,.transport { display:flex; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid var(--line); margin-top:18px; padding-top:16px; font-size:13px; }
+  .process p { flex:1 0 100%; margin:0; color:var(--muted); font-size:12px; min-height:1.2em; }
+  button { border:1px solid #afbeb2; background:#f8faf8; color:var(--ink); border-radius:6px; padding:9px 12px; font:600 13px system-ui,sans-serif; cursor:pointer; }
+  button:hover { border-color:var(--blue); color:var(--blue); }
+  button:disabled { opacity:.5; cursor:wait; }
+  button[aria-pressed=true] { background:var(--blue); border-color:var(--blue); color:#fff; }
+  button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  #play { background:var(--blue); border-color:var(--blue); color:#fff; min-width:74px; }
+  #clock { margin-left:auto; min-width:80px; text-align:right; font-variant-numeric:tabular-nums; }
+  .rate { display:flex; align-items:center; gap:8px; flex:1 1 260px; }
+  .rate input[type=number] { width:70px; }
+  .modes { display:flex; gap:6px; margin:0 0 8px; }
+  .modes button { padding:6px 10px; font-size:12px; }
+  .notes { margin-top:16px; color:var(--muted); font-size:13px; }
+  .notes p { margin:0 0 8px; }
+  .notes p:last-child { margin-bottom:0; }
+  @media(max-width:760px) { .panels,.control-sets { grid-template-columns:1fr; } #dist { height:380px; } main { padding:20px 12px 38px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>An ideal gas under a free piston</h1>
+  <p class="intro">Hard-disk molecules bounce around a box closed by a heavy piston that slides without friction. Gravity pulls only on the piston, so the gas holds it up by pressure alone. Every collision is elastic. Molecules are coloured by speed.</p>
+  <p id="status" role="status" aria-live="polite">Loading Plotly…</p>
+  <section class="controls" aria-labelledby="controls-title">
+    <h2 id="controls-title">Set up the gas</h2>
+    <div class="control-sets">
+      <div class="control-grid">
+        <h3>Starting state (changing these restarts)</h3>
+        <div class="control"><label for="n">Number of molecules N</label><div class="input-row"><input id="n" type="range" min="2" max="1000" step="1" value="300"><input id="n-number" type="number" min="2" max="1000" step="1" value="300" aria-label="Number of molecules"></div></div>
+        <div class="control"><label for="temp">Starting temperature kT₀</label><div class="input-row"><input id="temp" type="range" min="0.1" max="10" step="0.05" value="1"><input id="temp-number" type="number" min="0.1" max="10" step="any" value="1.00" aria-label="Starting temperature"></div><small class="help">Sets the gas kinetic energy to N kT₀ (2D: kT/2 per direction).</small></div>
+        <div class="control"><label for="start-velocities">Starting velocities</label><div class="input-row"><select id="start-velocities"><option value="equal" selected>All the same speed √(2kT₀), random directions</option><option value="maxwell">Already Maxwell-distributed</option></select></div></div>
+        <div class="control"><label for="radius">Disk radius r</label><div class="input-row"><input id="radius" type="range" min="0.002" max="0.03" step="0.001" value="0.01"><input id="radius-number" type="number" min="0.002" max="0.03" step="any" value="0.010" aria-label="Disk radius"></div><small class="help">Box width W = 2. Smaller disks make the gas more ideal but collide less often.</small></div>
+        <div class="control"><label for="height">Starting piston height y₀</label><div class="input-row"><input id="height" type="range" min="0.2" max="2" step="0.01" value="1.5"><input id="height-number" type="number" min="0.2" max="2" step="any" value="1.50" aria-label="Starting piston height"></div><small class="help">The piston starts at rest. <button id="balance" type="button">Start at force balance</button></small></div>
+      </div>
+      <div class="control-grid">
+        <h3>Live settings</h3>
+        <div class="control"><label for="mass">Piston mass M (in molecule masses)</label><div class="input-row"><input id="mass" type="range" min="1" max="3.30103" step="0.001" value="2"><input id="mass-number" type="number" min="10" max="2000" step="1" value="100" aria-label="Piston mass"></div><small class="help">Changing M also changes the piston's weight Mg.</small></div>
+        <div class="control"><label for="gravity">Gravity g (acts on the piston only)</label><div class="input-row"><input id="gravity" type="range" min="0.5" max="20" step="0.05" value="3"><input id="gravity-number" type="number" min="0.5" max="20" step="any" value="3.00" aria-label="Gravity on the piston"></div></div>
+        <div class="control"><label class="check" for="collisions"><input id="collisions" type="checkbox"> Molecules collide with each other</label><small class="help">Off: the molecules pass through each other, which makes the gas exactly ideal. Smooth walls never change |vₓ|, so the horizontal speeds stay frozen and the gas cannot reach a Maxwell distribution on its own. Turn on the heat bath below and it can: the floor gives each molecule that hits it a new random velocity.</small></div>
+        <div class="control"><label class="check" for="bath"><input id="bath" type="checkbox" checked> Floor is a heat bath at kT<sub>bath</sub></label><div class="input-row"><input id="bath-temp" type="range" min="0.1" max="10" step="0.05" value="1"><input id="bath-temp-number" type="number" min="0.1" max="10" step="any" value="1.00" aria-label="Heat bath temperature"></div><small class="help">A molecule that hits the floor (drawn red) leaves with a new random velocity drawn at kT<sub>bath</sub>. The gas then exchanges heat with the floor until it reaches that temperature, even with collisions off.</small></div>
+      </div>
+    </div>
+    <div class="process"><span>Change the load:</span><button id="double-now" type="button">Double M at once</button><button id="halve-now" type="button">Halve M at once</button><button id="double-slow" type="button">Double M slowly</button><button id="halve-slow" type="button">Halve M slowly</button><p id="ramp-note"></p></div>
+    <div class="transport"><button id="play" type="button" disabled>Play</button><button id="reset" type="button" disabled>Restart</button><label class="rate" for="rate">Speed<input id="rate" type="range" min="0.1" max="5" step="0.05" value="1"><input id="rate-number" type="number" min="0.1" max="5" step="any" value="1.00" aria-label="Simulation time units per second"> time units / s</label><span id="clock">t = 0.0</span></div>
+  </section>
+  <div class="panels">
+    <section class="panel" aria-labelledby="gas-title">
+      <h2 id="gas-title">The gas</h2>
+      <p class="sub">The orange ticks on the walls mark the piston height predicted for the final equilibrium.</p>
+      <canvas id="gas" role="img" aria-label="Box of molecules coloured by speed under a piston"></canvas>
+      <div class="scale"><span>speed</span><div id="colorbar"></div><span></span><div class="scale-labels"><span>0</span><span id="scale-mid">—</span><span id="scale-max">—</span></div></div>
+      <div class="readouts">
+        <div class="readout"><span>Time t</span><strong id="t-now">—</strong></div>
+        <div class="readout"><span>Piston height y<sub>p</sub></span><strong id="y-now">—</strong></div>
+        <div class="readout"><span>Predicted final height</span><strong id="yf-now">—</strong></div>
+        <div class="readout"><span>Gas temperature kT</span><strong id="T-now">—</strong></div>
+        <div class="readout"><span>⟨vₓ²⟩ / ⟨v<sub>y</sub>²⟩</span><strong id="Txy-now">—</strong></div>
+        <div class="readout"><span>Collisions per molecule per t</span><strong id="rate-now">—</strong></div>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="dist-title">
+      <h2 id="dist-title">Velocity distribution</h2>
+      <p class="sub">Averaged over the last 40 frames. Solid: the equilibrium curve at the gas's current kT, or at kT<sub>bath</sub> when the heat bath is on. With the bath on, a dashed curve shows the current kT too. Vertical lines mark the measured most probable, mean and rms speeds (for a 2D Maxwell distribution, √(kT), √(πkT/2) and √(2kT)).</p>
+      <div class="modes"><button id="mode-speed" type="button" aria-pressed="true">Speed |v|</button><button id="mode-components" type="button" aria-pressed="false">Components vₓ, v<sub>y</sub></button></div>
+      <div id="dist" class="plot" role="img" aria-label="Histogram of molecular speeds with the Maxwell distribution"></div>
+    </section>
+    <section class="panel wide" aria-labelledby="history-title">
+      <h2 id="history-title">Piston height and energy</h2>
+      <p class="sub">The total energy changes only when you change M or g (the work done by whoever adds or removes the load) or when heat flows in from the bath.</p>
+      <div id="history" class="plot" role="img" aria-label="Piston height and energies versus time"></div>
+      <div class="readouts">
+        <div class="readout"><span>Measured pressure on piston</span><strong id="pm-now">—</strong></div>
+        <div class="readout"><span>Kinetic Σv<sub>y</sub>²/A</span><strong id="pk-now">—</strong></div>
+        <div class="readout"><span>Piston weight per length Mg/W</span><strong id="pw-now">—</strong></div>
+        <div class="readout"><span>Heat in from the bath Q</span><strong id="heat-now">—</strong></div>
+        <div class="readout"><span>Energy drift E − E₀ − W<sub>load</sub> − Q</span><strong id="drift-now">—</strong></div>
+      </div>
+    </section>
+  </div>
+  <div class="notes">
+    <p>Units: molecule mass m = 1, Boltzmann's constant k = 1, box width W = 2, ceiling at height 2. Pressure in 2D is a force per length, and the ideal gas law reads PA = NkT with A the area.</p>
+    <p>The piston settles where the gas pressure balances its weight, P = Mg/W. Without the heat bath the total energy E is shared between the gas (NkT), the piston's height energy and the piston's own thermal motion, which predicts the final temperature kT = (E − 2rMg)/(2N + 3/2) and height y = (N + 1)kT/(Mg) + 2r.</p>
+    <p>Doubling M at once compresses the gas irreversibly: the piston overshoots, rings and then settles, and the gas ends hotter than when M is doubled slowly (over 40 time units). Turn collisions off (with the heat bath off) to see that a perfectly ideal gas in a box with smooth walls never thermalizes: only the piston can change v<sub>y</sub>, and nothing changes vₓ.</p>
+    <p>With the heat bath on, the floor is a thermal wall. The gas relaxes to kT<sub>bath</sub>, even with collisions off, and the piston settles at y = (N + 1)kT<sub>bath</sub>/(Mg) + 2r. Work done compressing the gas flows out to the bath as heat (Q &lt; 0).</p>
+  </div>
+</main>
+</body>
+</html>
